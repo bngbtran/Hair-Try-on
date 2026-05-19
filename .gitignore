@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Storage (local data)
+backend-hairstyle-service/storage/
+backend-face-service/temp/
+
+# Node
+node_modules/
+.expo/
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+
+# Misc
+.DS_Store
+*.log
+_gen_assets.py

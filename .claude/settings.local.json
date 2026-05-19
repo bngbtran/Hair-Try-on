@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(conda run *)",
+      "Bash(cd /d/Hair-Try-on && conda run -n msa python _gen_assets.py && ls frontend/assets/)",
+      "Read(//d/d/Hair-Try-on/frontend/**)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(mkdir -p /c/Users/bngbtran/.claude/projects/d--Hair-Try-on/memory)",
+      "Read(//c/Users/bngbtran/.claude/projects/d--Hair-Try-on/**)",
+      "Bash(find /d/LIBRARY/MINICONDA/Conda -name \"libffi*.dll\" 2>/dev/null)",
+      "Read(//d/LIBRARY/MINICONDA/Conda/**)",
+      "Bash(find \"/d/APPS/CODE APP/GITHUB/Git\" -name \"libffi*.dll\" 2>/dev/null)",
+      "Read(//d/APPS/CODE APP/GITHUB/Git/**)"
+    ]
+  }
+}
