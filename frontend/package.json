@@ -1,0 +1,36 @@
+{
+  "name": "hair-tryon-app",
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.5",
+    "@react-navigation/bottom-tabs": "^7.3.10",
+    "@react-navigation/native": "^7.0.14",
+    "expo": "~53.0.0",
+    "expo-image-picker": "~16.1.4",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-native": "0.79.6",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-web": "^0.20.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.0.0",
+    "typescript": "^5.3.3"
+  },
+  "private": true,
+  "overrides": {
+    "@xmldom/xmldom": ">=0.8.10",
+    "tar": ">=6.2.1",
+    "postcss": ">=8.4.49"
+  }
+}
