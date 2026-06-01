@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hair Try-On</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f6f2;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 22px; font-weight: 700; }
+    header p  { font-size: 13px; color: #aaa; margin-top: 2px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 72px);
+    }
+
+    /* ── Left panel ─────────────────────────────────────────────── */
+    .left-panel {
+      background: #fff;
+      border-right: 1px solid #e8e4de;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed #d0ccc5;
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: #1a1a2e; background: #f4f2ee; }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone .icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-zone .hint { font-size: 13px; color: #888; }
+
+    #personPreviewWrap {
+      display: none;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f0ece6;
+    }
+    #personPreview {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      display: block;
+    }
+    .change-btn {
+      position: absolute;
+      bottom: 10px; right: 10px;
+      background: rgba(0,0,0,.55);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Try-on button */
+    .tryon-btn {
+      width: 100%;
+      padding: 14px;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    .tryon-btn:hover   { background: #2d2d5e; }
+    .tryon-btn:active  { transform: scale(.98); }
+    .tryon-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    .selected-label {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    /* ── Right panel ────────────────────────────────────────────── */
+    .right-panel {
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Hairstyle grid */
+    .hair-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 14px;
+    }
+
+    .hair-card {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .hair-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+    .hair-card.selected {
+      border-color: #1a1a2e;
+      box-shadow: 0 0 0 3px rgba(26,26,46,.15);
+    }
+    .hair-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #f5f3f0;
+      display: block;
+      padding: 6px;
+    }
+    .hair-card .hair-name {
+      font-size: 11px;
+      text-align: center;
+      padding: 6px 4px;
+      color: #444;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hair-card .check {
+      display: none;
+      position: absolute;
+      top: 6px; right: 6px;
+      background: #1a1a2e;
+      color: #fff;
+      border-radius: 50%;
+      width: 20px; height: 20px;
+      font-size: 11px;
+      align-items: center;
+      justify-content: center;
+    }
+    .hair-card { position: relative; }
+    .hair-card.selected .check { display: flex; }
+
+    .empty-state {
+      text-align: center;
+      color: #aaa;
+      padding: 40px 0;
+      font-size: 14px;
+    }
+
+    /* ── Result overlay (thay thế hair grid khi có kết quả) ──────────────── */
+    .result-overlay {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeSlideIn .35s ease;
+    }
+    .result-overlay.show { display: flex; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ba-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .ba-item { display: flex; flex-direction: column; gap: 8px; }
+    .ba-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #999;
+    }
+    .ba-img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      border-radius: 14px;
+      display: block;
+      background: #e8e4de;
+      box-shadow: 0 2px 12px rgba(0,0,0,.10);
+    }
+    .ba-after .ba-img {
+      box-shadow: 0 6px 28px rgba(0,0,0,.18);
+      outline: 3px solid #1a1a2e;
+      outline-offset: 2px;
+    }
+
+    .result-footer {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-download {
+      flex: 1;
+      padding: 13px 0;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: background .2s;
+    }
+    .btn-download:hover { background: #2d2d5e; }
+    .btn-retry {
+      flex: 1;
+      padding: 13px 0;
+      background: transparent;
+      color: #1a1a2e;
+      border: 2px solid #1a1a2e;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-retry:hover { background: #f0ece6; }
+
+    /* Loading overlay */
+    #loadingOverlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 1000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    #loadingOverlay.show { display: flex; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid rgba(255,255,255,.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    .loading-text { color: #fff; font-size: 15px; font-weight: 600; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      display: none;
+      z-index: 1001;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    }
+    .toast.success { background: #27ae60; }
+    .toast.error   { background: #e74c3c; }
+
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .left-panel { border-right: none; border-bottom: 1px solid #e8e4de; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Đang xử lý, vui lòng chờ...</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<header>
+  <div>
+    <h1>Hair Try-On</h1>
+    <p>Chọn kiểu tóc và xem thử ngay trên ảnh của bạn</p>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: upload + action -->
+  <div class="left-panel">
+
+    <div>
+      <div class="section-title">Ảnh của bạn</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="personInput" accept="image/*" onchange="onPersonChange(this)" />
+        <div class="icon">🖼️</div>
+        <div style="font-weight:600;margin-bottom:4px">Chọn hoặc kéo thả ảnh</div>
+        <div class="hint">PNG, JPG — tối đa 10MB</div>
+      </div>
+      <div id="personPreviewWrap">
+        <img id="personPreview" />
+        <button class="change-btn" onclick="document.getElementById('personInput').click()">Đổi ảnh</button>
+      </div>
+    </div>
+
+    <div class="selected-label" id="selectedLabel">Chưa chọn kiểu tóc</div>
+
+    <button class="tryon-btn" id="tryonBtn" onclick="runTryon()" disabled>
+      Thử ngay
+    </button>
+
+  </div>
+
+  <!-- RIGHT: hairstyle picker + result overlay -->
+  <div class="right-panel">
+
+    <!-- Chọn kiểu tóc (ẩn khi có kết quả) -->
+    <div id="hairSection">
+      <div class="section-title">Chọn kiểu tóc</div>
+      <div class="hair-grid" id="hairGrid">
+        <div class="empty-state">Đang tải kiểu tóc...</div>
+      </div>
+    </div>
+
+    <!-- Kết quả (hiện khi xong, thay thế grid) -->
+    <div class="result-overlay" id="resultOverlay">
+      <div>
+        <div class="section-title">Kết quả</div>
+        <div style="font-size:14px;color:#555;margin-top:-4px">
+          Kiểu tóc: <strong id="resultHairName"></strong>
+        </div>
+      </div>
+
+      <div class="ba-row">
+        <div class="ba-item ba-before">
+          <div class="ba-label">Trước</div>
+          <img id="beforeImg" class="ba-img" />
+        </div>
+        <div class="ba-item ba-after">
+          <div class="ba-label">Sau</div>
+          <img id="afterImg" class="ba-img" />
+        </div>
+      </div>
+
+      <div class="result-footer">
+        <a id="downloadBtn" class="btn-download" download="tryon_result.png">Tải xuống</a>
+        <button class="btn-retry" onclick="resetResult()">Thử kiểu khác</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const BASE = "http://localhost:8000";
+
+  let selectedHairstyleId   = null;
+  let selectedHairstyleName = null;
+  let personFileReady       = false;
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  function toast(msg, type = "success") {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.className = `toast ${type}`;
+    el.style.display = "block";
+    setTimeout(() => el.style.display = "none", 3500);
+  }
+
+  function setLoading(show) {
+    document.getElementById("loadingOverlay").classList.toggle("show", show);
+  }
+
+  function updateTryonBtn() {
+    const btn = document.getElementById("tryonBtn");
+    btn.disabled = !(personFileReady && selectedHairstyleId !== null);
+  }
+
+  // ── Person upload ─────────────────────────────────────────────────────────
+  function onPersonChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById("personPreview").src = url;
+    document.getElementById("personPreviewWrap").style.display = "block";
+    document.getElementById("uploadZone").style.display = "none";
+    personFileReady = true;
+    updateTryonBtn();
+    resetResult();
+  }
+
+  // Drag & drop
+  const zone = document.getElementById("uploadZone");
+  zone.addEventListener("dragover",  e => { e.preventDefault(); zone.classList.add("drag"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("drag");
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById("personInput").files = dt.files;
+      onPersonChange(document.getElementById("personInput"));
+    }
+  });
+
+  // ── Load hairstyles ───────────────────────────────────────────────────────
+  async function loadHairstyles() {
+    try {
+      const res  = await fetch(`${BASE}/admin/hairstyles`);
+      const data = await res.json();
+      const grid = document.getElementById("hairGrid");
+
+      if (!data.length) {
+        grid.innerHTML = `<div class="empty-state">Chưa có kiểu tóc nào trong hệ thống</div>`;
+        return;
+      }
+
+      grid.innerHTML = data.map(h => {
+        const imgUrl = `${BASE}/${h.image_path.replace(/\\/g, "/")}`;
+        return `
+          <div class="hair-card" id="hcard-${h.id}" onclick="selectHair(${h.id}, '${h.name}')">
+            <div class="check">✓</div>
+            <img src="${imgUrl}" alt="${h.name}" onerror="this.src=''" />
+            <div class="hair-name">${h.name}</div>
+          </div>`;
+      }).join("");
+    } catch {
+      document.getElementById("hairGrid").innerHTML =
+        `<div class="empty-state">Không thể kết nối backend</div>`;
+    }
+  }
+
+  // ── Select hairstyle ──────────────────────────────────────────────────────
+  function selectHair(id, name) {
+    // Bỏ chọn card cũ
+    if (selectedHairstyleId !== null) {
+      const old = document.getElementById(`hcard-${selectedHairstyleId}`);
+      if (old) old.classList.remove("selected");
+    }
+    selectedHairstyleId   = id;
+    selectedHairstyleName = name;
+    document.getElementById(`hcard-${id}`).classList.add("selected");
+    document.getElementById("selectedLabel").textContent = `Đã chọn: ${name}`;
+    updateTryonBtn();
+    resetResult();
+  }
+
+  // ── Try-On ────────────────────────────────────────────────────────────────
+  async function runTryon() {
+    const file = document.getElementById("personInput").files[0];
+    if (!file || !selectedHairstyleId) return;
+
+    const form = new FormData();
+    form.append("person_image", file);
+    form.append("hairstyle_id", selectedHairstyleId);
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/tryon`, { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Lỗi server");
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+
+      // Before: ảnh gốc của người dùng
+      document.getElementById("beforeImg").src = document.getElementById("personPreview").src;
+      // After: kết quả
+      document.getElementById("afterImg").src     = url;
+      document.getElementById("downloadBtn").href  = url;
+      document.getElementById("resultHairName").textContent = selectedHairstyleName;
+
+      // Ẩn grid, hiện kết quả
+      document.getElementById("hairSection").style.display   = "none";
+      document.getElementById("resultOverlay").classList.add("show");
+      document.getElementById("resultOverlay").scrollIntoView({ behavior: "smooth", block: "start" });
+      toast("Ghép tóc thành công!");
+    } catch (e) {
+      toast(e.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────────────────
+  function resetResult() {
+    document.getElementById("resultOverlay").classList.remove("show");
+    document.getElementById("hairSection").style.display = "block";
+    document.getElementById("hairSection").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  loadHairstyles();
+</script>
+</body>
+</html>

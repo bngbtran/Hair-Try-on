@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin import router as admin_router
+from app.api.tryon import router as tryon_router
 
 app = FastAPI(title="Hair Try-On API")
 
@@ -15,6 +16,7 @@ app.add_middleware(
 
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 app.include_router(admin_router)
+app.include_router(tryon_router)
 
 
 @app.get("/")

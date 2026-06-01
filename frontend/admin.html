@@ -289,6 +289,47 @@
     }
   }
 
+  // ── Try-On ────────────────────────────────────────────────────────────────
+  function previewPerson(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const el = document.getElementById("tryonPersonPreview");
+    el.src = URL.createObjectURL(file);
+    el.style.display = "block";
+  }
+
+  async function runTryon() {
+    const file = document.getElementById("tryonPerson").files[0];
+    const id   = document.getElementById("tryonHairstyleId").value.trim();
+
+    if (!file) return toast("Chọn ảnh người dùng", "error");
+    if (!id)   return toast("Nhập ID kiểu tóc", "error");
+
+    const form = new FormData();
+    form.append("person_image", file);
+    form.append("hairstyle_id", id);
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/tryon`, { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Lỗi server");
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+
+      document.getElementById("tryonResultImg").src     = url;
+      document.getElementById("tryonDownload").href     = url;
+      document.getElementById("tryonResult").style.display = "block";
+      toast("Ghép tóc thành công!");
+    } catch (e) {
+      toast(e.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Load khi mở trang
   loadHairstyles();
 </script>
