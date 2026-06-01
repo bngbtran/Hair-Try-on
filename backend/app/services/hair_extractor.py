@@ -1,6 +1,6 @@
 import io
 import os
-import uuid
+import re
 
 from PIL import Image
 
@@ -11,22 +11,32 @@ from app.services.hair_straightener import straighten_hair
 segmenter = HairSegmenter()
 
 
-def extract_hair(image_bytes: bytes, gender: str):
+def _safe_filename(name: str) -> str:
+    name = name.strip().lower()
+    name = re.sub(r"[^\w\s-]", "", name)
+    name = re.sub(r"[\s]+", "_", name)
+    return name or "hairstyle"
 
+
+def extract_hair(image_bytes: bytes, name: str) -> str:
     rgba_bytes = segmenter.get_hair_rgba(image_bytes)
 
     hair_pil = Image.open(io.BytesIO(rgba_bytes)).convert("RGBA")
-
     hair_pil = straighten_hair(hair_pil)
 
-    filename = f"{os.name}.png"
-
-    save_dir = f"assets/hairstyles/{gender}"
-
+    save_dir = "assets/hairstyles"
     os.makedirs(save_dir, exist_ok=True)
 
-    save_path = os.path.join(save_dir, filename)
+    base = _safe_filename(name)
+    filename = f"{base}.png"
 
+    # Tránh ghi đè nếu tên đã tồn tại
+    counter = 1
+    while os.path.exists(os.path.join(save_dir, filename)):
+        filename = f"{base}_{counter}.png"
+        counter += 1
+
+    save_path = os.path.join(save_dir, filename)
     hair_pil.save(save_path)
 
     return save_path

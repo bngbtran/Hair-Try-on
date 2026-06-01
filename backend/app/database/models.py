@@ -10,8 +10,6 @@ class Hairstyle(Base):
 
     name = Column(String, nullable=False)
 
-    gender = Column(String, nullable=False)
-
     image_path = Column(String, nullable=False)
 
     preview_path = Column(String)
