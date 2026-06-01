@@ -24,7 +24,8 @@ def extract_hair(image_bytes: bytes, name: str) -> str:
     hair_pil = Image.open(io.BytesIO(rgba_bytes)).convert("RGBA")
     hair_pil = straighten_hair(hair_pil)
 
-    save_dir = "assets/hairstyles"
+    _base = os.environ.get("ASSETS_DIR", "assets")
+    save_dir = os.path.join(_base, "hairstyles")
     os.makedirs(save_dir, exist_ok=True)
 
     base = _safe_filename(name)

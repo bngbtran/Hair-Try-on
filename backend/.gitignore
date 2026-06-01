@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# DB local
+*.db
+
+# MediaPipe models (downloaded at runtime)
+*.tflite
+*.task
+
+# Generated assets (managed by persistent disk on Render)
+assets/hairstyles/*.png
+
+# Python env
+.venv/
+venv/

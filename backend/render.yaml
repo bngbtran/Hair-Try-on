@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: hair-tryon-api
+    runtime: python
+    plan: standard          # 2GB RAM — cần thiết cho MediaPipe + OpenCV
+    region: singapore       # gần nhất với VN
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    disk:
+      name: hair-tryon-data
+      mountPath: /data
+      sizeGB: 2             # models (~50MB) + DB + ảnh tóc upload
+
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/hairstyle.db
+      - key: ASSETS_DIR
+        value: /data/assets
+      - key: MODELS_DIR
+        value: /data/models
+      - key: PYTHON_VERSION
+        value: 3.10.14

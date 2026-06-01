@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +16,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+_assets_dir = os.environ.get("ASSETS_DIR", "assets")
+os.makedirs(os.path.join(_assets_dir, "hairstyles"), exist_ok=True)
+app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
 app.include_router(admin_router)
 app.include_router(tryon_router)
 
