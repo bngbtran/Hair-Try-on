@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
-export const BASE_URL = 'http://localhost:8000';
+export const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export interface Hairstyle {
   id: number;
