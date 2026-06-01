@@ -5,7 +5,7 @@ services:
     plan: standard          # 2GB RAM — cần cho MediaPipe + OpenCV
     region: singapore
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: apt-get update -y && apt-get install -y --no-install-recommends libgles2-mesa libgl1-mesa-glx libglib2.0-0 && pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
     disk:
