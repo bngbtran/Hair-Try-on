@@ -5,10 +5,19 @@ import mediapipe as mp
 import numpy as np
 from PIL import Image
 
-from app.services.hair_segmenter import HairSegmenter
 from app.services.mediapipe_models import get_face_landmarker
+from app.services.hair_segmenter import HairSegmenter
 
-_segmenter = HairSegmenter()
+_segmenter = None
+
+
+def get_segmenter():
+    global _segmenter
+
+    if _segmenter is None:
+        _segmenter = HairSegmenter()
+
+    return _segmenter
 
 
 def _sample_skin_ref(img_rgb: np.ndarray, erase_mask: np.ndarray) -> np.ndarray:
@@ -64,7 +73,8 @@ def remove_old_hair(person_pil: Image.Image) -> tuple:
     # Lấy hair mask từ HairSegmenter có sẵn
     buf = io.BytesIO()
     person_pil.convert("RGB").save(buf, format="PNG")
-    hair_mask = _segmenter.get_hair_mask(buf.getvalue())
+    segmenter = get_segmenter()
+    hair_mask = segmenter.get_hair_mask(buf.getvalue())
 
     k_big = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
     k_med = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
