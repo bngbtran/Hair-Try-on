@@ -3,16 +3,20 @@ import { Platform } from 'react-native';
 export const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
+// Supabase Storage base URL — used to display hair images served by Supabase CDN.
+// image_path returned from the API is already a full Supabase public URL,
+// so hairImageUrl() just passes it through unchanged.
 export interface Hairstyle {
   id: number;
   name: string;
-  image_path: string;
+  image_path: string;   // full Supabase Storage public URL
   preview_path?: string;
   created_at?: string;
 }
 
 export function hairImageUrl(imagePath: string): string {
-  return `${BASE_URL}/${imagePath.replace(/\\/g, '/')}`;
+  // image_path is now a full Supabase CDN URL — return as-is
+  return imagePath;
 }
 
 async function uriToBlob(uri: string): Promise<Blob> {
