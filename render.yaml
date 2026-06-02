@@ -11,17 +11,20 @@ services:
     disk:
       name: hair-tryon-data
       mountPath: /data
-      sizeGB: 2
+      sizeGB: 1
 
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-      - key: DATABASE_URL
-        value: sqlite:////data/hairstyle.db
-      - key: ASSETS_DIR
-        value: /data/assets
+      # ── Supabase ──────────────────────────────────────────────────────────
+      - key: SUPABASE_URL
+        sync: false          # set manually in Render dashboard
+      - key: SUPABASE_KEY
+        sync: false          # set manually in Render dashboard (service_role key)
+      # ── MediaPipe models cache (persistent disk) ──────────────────────────
       - key: MODELS_DIR
         value: /data/models
+      # ── OpenCV / MediaPipe runtime flags ──────────────────────────────────
       - key: MEDIAPIPE_DISABLE_GPU
         value: "1"
       - key: LIBGL_ALWAYS_SOFTWARE

@@ -1,21 +1,28 @@
 import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+load_dotenv()  # 👈 tự tìm .env trong working directory
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./hairstyle.db")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+STORAGE_BUCKET = "hairstyles"
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+_client: Client | None = None
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def get_supabase() -> Client:
+    global _client
+
+    if _client is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise RuntimeError(
+                "SUPABASE_URL và SUPABASE_KEY chưa được set.\n"
+                "Local: backend/.env\n"
+                "Render: Environment Variables"
+            )
+
+        _client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    return _client
