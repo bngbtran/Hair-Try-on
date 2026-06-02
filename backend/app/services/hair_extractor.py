@@ -8,7 +8,16 @@ from app.services.hair_segmenter import HairSegmenter
 from app.services.hair_straightener import straighten_hair
 
 
-segmenter = HairSegmenter()
+_segmenter = None
+
+
+def get_segmenter():
+    global _segmenter
+
+    if _segmenter is None:
+        _segmenter = HairSegmenter()
+
+    return _segmenter
 
 
 def _safe_filename(name: str) -> str:
@@ -19,6 +28,8 @@ def _safe_filename(name: str) -> str:
 
 
 def extract_hair(image_bytes: bytes, name: str) -> str:
+    segmenter = get_segmenter()
+
     rgba_bytes = segmenter.get_hair_rgba(image_bytes)
 
     hair_pil = Image.open(io.BytesIO(rgba_bytes)).convert("RGBA")
@@ -31,7 +42,6 @@ def extract_hair(image_bytes: bytes, name: str) -> str:
     base = _safe_filename(name)
     filename = f"{base}.png"
 
-    # Tránh ghi đè nếu tên đã tồn tại
     counter = 1
     while os.path.exists(os.path.join(save_dir, filename)):
         filename = f"{base}_{counter}.png"
