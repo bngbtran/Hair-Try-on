@@ -1,20 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Dimensions,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Feather } from "@expo/vector-icons";
+
 import {
   Hairstyle,
   deleteHairstyle,
@@ -22,50 +21,82 @@ import {
   hairImageUrl,
   updateHairstyle,
   uploadHairstyle,
-} from '../api/client';
-import ImageViewer from '../components/ImageViewer';
+} from "../api/client";
 
-const C = {
-  bg:      '#F7F4F0',
-  white:   '#FFFFFF',
-  primary: '#18182C',
-  accent:  '#4F46E5',
-  border:  '#EAE5DE',
-  sub:     '#9B9590',
-  muted:   '#C8C2BA',
-  error:   '#EF4444',
-  warn:    '#F59E0B',
-  success: '#22C55E',
+const T = {
+  bg: "#F4F6F8",
+  card: "#FFFFFF",
+  text: "#0F172A",
+  sub: "#6C757D",
+  border: "#DEE2E6",
+  green: "#22C55E",
+  red: "#EF4444",
+  orange: "#F97316",
+  purple: "#6366F1",
+  navy: "#1E293B",
+  link: "#3B82F6",
 };
 
-interface FormState { name: string; imageUri: string | null }
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const NUM_COLS = 3;
+const H_PAD = 40;
+const CARD_GAP = 10;
+const CARD_W = (SCREEN_W - H_PAD * 2 - CARD_GAP * (NUM_COLS - 1)) / NUM_COLS;
+const IMG_H = CARD_W * 0.88;
 
+type SortField = "id" | "name";
+
+/* ─────────────────────────────── SCREEN ─────────────────────────────── */
 export default function AdminScreen() {
-  const [list, setList]         = useState<Hairstyle[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [modal, setModal]       = useState(false);
-  const [editing, setEditing]   = useState<Hairstyle | null>(null);
-  const [form, setForm]         = useState<FormState>({ name: '', imageUri: null });
-  const [viewerUri, setViewerUri]   = useState<string | null>(null);
-  const [viewerLabel, setViewerLabel] = useState('');
+  const [list, setList] = useState<Hairstyle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState<Hairstyle | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [form, setForm] = useState({
+    name: "",
+    imageUri: null as string | null,
+  });
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
-  useEffect(() => { fetchList(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  async function fetchList() {
-    try {
-      setLoading(true);
-      setList(await getHairstyles());
-    } catch {
-      Alert.alert('Lỗi kết nối', 'Không thể tải danh sách.\nKiểm tra backend đã chạy chưa.');
-    } finally {
-      setLoading(false);
+  async function fetchData() {
+    setLoading(true);
+    setList(await getHairstyles());
+    setLoading(false);
+  }
+
+  const filtered = list
+    .filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortField === "id") return (a.id - b.id) * dir;
+      return a.name.localeCompare(b.name) * dir;
+    });
+
+  function toggleSelect(id: number) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  }
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortField(field);
+      setSortDir("asc");
     }
   }
 
   function openAdd() {
     setEditing(null);
-    setForm({ name: '', imageUri: null });
+    setForm({ name: "", imageUri: null });
     setModal(true);
   }
 
@@ -76,273 +107,592 @@ export default function AdminScreen() {
   }
 
   async function pickImage() {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Cần quyền truy cập thư viện ảnh'); return; }
-    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.92,
+      quality: 0.9,
     });
-    if (!res.canceled) setForm(f => ({ ...f, imageUri: res.assets[0].uri }));
+    if (!res.canceled) setForm((f) => ({ ...f, imageUri: res.assets[0].uri }));
   }
 
   async function submit() {
-    if (!form.name.trim()) { Alert.alert('Thiếu thông tin', 'Nhập tên kiểu tóc'); return; }
-    if (!editing && !form.imageUri) { Alert.alert('Thiếu thông tin', 'Chọn ảnh kiểu tóc'); return; }
-    setSaving(true);
-    try {
-      if (editing) {
-        await updateHairstyle(editing.id, form.name.trim(), form.imageUri ?? undefined);
-      } else {
-        await uploadHairstyle(form.name.trim(), form.imageUri!);
-      }
-      setModal(false);
-      await fetchList();
-    } catch (e: any) {
-      Alert.alert('Lỗi', e.message);
-    } finally {
-      setSaving(false);
+    if (!form.name.trim()) return;
+    if (editing) {
+      await updateHairstyle(editing.id, form.name, form.imageUri ?? undefined);
+    } else {
+      if (!form.imageUri) return;
+      await uploadHairstyle(form.name, form.imageUri);
     }
+    setModal(false);
+    fetchData();
   }
 
-  function confirmDelete(item: Hairstyle) {
-    Alert.alert('Xoá kiểu tóc', `Xoá "${item.name}"?`, [
-      { text: 'Huỷ', style: 'cancel' },
-      {
-        text: 'Xoá', style: 'destructive',
-        onPress: async () => {
-          try { await deleteHairstyle(item.id); await fetchList(); }
-          catch (e: any) { Alert.alert('Lỗi', e.message); }
-        },
-      },
-    ]);
+  async function removeOne(id: number) {
+    await deleteHairstyle(id);
+    fetchData();
   }
 
-  const renderItem = useCallback(({ item }: { item: Hairstyle }) => {
-    const date = item.created_at?.split('.')?.[0] ?? '';
-    return (
-      <View style={s.card}>
-        <Pressable onPress={() => { setViewerUri(hairImageUrl(item.image_path)); setViewerLabel(item.name); }}>
-          <Image source={{ uri: hairImageUrl(item.image_path) }} style={s.thumb} resizeMode="contain" />
-        </Pressable>
-        <View style={s.cardBody}>
-          <Text style={s.cardName}>{item.name}</Text>
-          <Text style={s.cardId}>ID · {item.id}</Text>
-          {!!date && <Text style={s.cardDate}>{date}</Text>}
-        </View>
-        <View style={s.cardActions}>
-          <Pressable style={({ pressed }) => [s.iconBtn, s.editBtn, pressed && s.pressed]}
-            onPress={() => openEdit(item)}>
-            <Text style={s.iconBtnTxt}>✏️</Text>
-          </Pressable>
-          <Pressable style={({ pressed }) => [s.iconBtn, s.delBtn, pressed && s.pressed]}
-            onPress={() => confirmDelete(item)}>
-            <Text style={s.iconBtnTxt}>🗑</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }, []);
+  async function removeSelected() {
+    await Promise.all(selected.map((id) => deleteHairstyle(id)));
+    setSelected([]);
+    fetchData();
+  }
 
-  /* ───────────────────────────────────────── render ── */
-  return (
-    <View style={s.root}>
-
-      {loading ? (
-        <View style={s.centered}>
-          <ActivityIndicator color={C.accent} size="large" />
-          <Text style={s.loadTxt}>Đang tải...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={list}
-          keyExtractor={i => String(i.id)}
-          renderItem={renderItem}
-          contentContainerStyle={s.listPad}
-          ListEmptyComponent={
-            <View style={s.centered}>
-              <Text style={{ fontSize: 40, marginBottom: 10 }}>💇</Text>
-              <Text style={s.emptyTxt}>Chưa có kiểu tóc nào</Text>
-            </View>
-          }
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        />
-      )}
-
-      {/* Image Viewer */}
-      <ImageViewer
-        uri={viewerUri}
-        label={viewerLabel}
-        onClose={() => setViewerUri(null)}
-      />
-
-      {/* FAB */}
-      <TouchableOpacity style={s.fab} onPress={openAdd} activeOpacity={0.85}>
-        <Text style={s.fabTxt}>＋  Thêm mới</Text>
-      </TouchableOpacity>
-
-      {/* ── Add / Edit Modal ──────────────────────────────── */}
-      <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
-        <KeyboardAvoidingView
-          style={s.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  /* ── card item ── */
+  const renderCard = useCallback(
+    ({ item, index }: { item: Hairstyle; index: number }) => {
+      const isSelected = selected.includes(item.id);
+      const col = index % NUM_COLS;
+      return (
+        <View
+          style={[
+            s.card,
+            col < NUM_COLS - 1 && { marginRight: CARD_GAP },
+            { marginBottom: CARD_GAP },
+            isSelected && s.cardSelected,
+          ]}
         >
-          <Pressable style={s.backdrop} onPress={() => setModal(false)} />
-
-          <View style={s.sheet}>
-            <View style={s.handle} />
-
-            <Text style={s.sheetTitle}>
-              {editing ? '✏️  Cập nhật kiểu tóc' : '＋  Thêm kiểu tóc mới'}
-            </Text>
-
-            {/* Tên */}
-            <Text style={s.fieldLabel}>
-              Tên kiểu tóc <Text style={{ color: C.error }}>*</Text>
-            </Text>
-            <TextInput
-              style={s.input}
-              placeholder="VD: Tóc bob ngắn"
-              placeholderTextColor={C.muted}
-              value={form.name}
-              onChangeText={t => setForm(f => ({ ...f, name: t }))}
-              returnKeyType="done"
+          {/* image */}
+          <Pressable
+            style={s.cardImgWrap}
+            onPress={() => setPreviewUri(hairImageUrl(item.image_path))}
+            onLongPress={() => toggleSelect(item.id)}
+          >
+            <Image
+              source={{ uri: hairImageUrl(item.image_path) }}
+              style={s.cardImg}
+              resizeMode="center"
             />
+            {/* dim overlay when selected */}
+            {isSelected && <View style={s.selectedDim} />}
 
-            {/* Ảnh */}
-            <Text style={s.fieldLabel}>
-              Ảnh kiểu tóc{' '}
-              {!editing
-                ? <Text style={{ color: C.error }}>*</Text>
-                : <Text style={{ color: C.sub, fontWeight: '400' }}>(bỏ trống = giữ nguyên)</Text>
-              }
-            </Text>
-
+            {/* checkbox top-right */}
             <Pressable
-              style={({ pressed }) => [s.imgPick, pressed && s.pressed]}
-              onPress={pickImage}
+              style={s.checkOverlay}
+              onPress={() => toggleSelect(item.id)}
             >
-              {form.imageUri ? (
-                <View style={s.imgPickPreviewWrap}>
-                  <Image source={{ uri: form.imageUri }} style={s.imgPickPreview} resizeMode="cover" />
-                  <View style={s.imgPickOverlay}>
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Đổi ảnh</Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={s.imgPickEmpty}>
-                  <Text style={{ fontSize: 28 }}>📷</Text>
-                  <Text style={s.imgPickTxt}>Nhấn để chọn ảnh</Text>
-                </View>
+              <View style={[s.checkbox, isSelected && s.checkboxActive]}>
+                {isSelected && <Feather name="check" size={9} color="#fff" />}
+              </View>
+            </Pressable>
+          </Pressable>
+
+          {/* name + id */}
+          <View style={s.cardBody}>
+            <Text style={s.cardName} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={s.cardId}>ID: {item.id}</Text>
+          </View>
+
+          {/* icon action buttons */}
+          <View style={s.cardFooter}>
+            <Pressable
+              style={({ pressed }) => [
+                s.iconBtn,
+                s.iconBtnEdit,
+                pressed && s.iconBtnEditFilled,
+              ]}
+              onPress={() => openEdit(item)}
+            >
+              {({ pressed }) => (
+                <Feather
+                  name="edit-2"
+                  size={14}
+                  color={pressed ? "#fff" : T.green}
+                />
               )}
             </Pressable>
 
-            {/* Buttons */}
-            <View style={s.sheetBtns}>
-              <TouchableOpacity style={s.btnCancel} onPress={() => setModal(false)}>
-                <Text style={s.btnCancelTxt}>Huỷ</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.btnSave, saving && { opacity: 0.7 }]}
-                onPress={submit}
-                disabled={saving}
-                activeOpacity={0.85}
-              >
-                {saving
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.btnSaveTxt}>{editing ? 'Cập nhật' : 'Upload & Tách tóc'}</Text>
-                }
-              </TouchableOpacity>
+            <Pressable
+              style={({ pressed }) => [
+                s.iconBtn,
+                s.iconBtnDel,
+                pressed && s.iconBtnDelFilled,
+              ]}
+              onPress={() => removeOne(item.id)}
+            >
+              {({ pressed }) => (
+                <Feather
+                  name="trash-2"
+                  size={14}
+                  color={pressed ? "#fff" : T.orange}
+                />
+              )}
+            </Pressable>
+          </View>
+        </View>
+      );
+    },
+    [selected],
+  );
+
+  return (
+    <View style={s.container}>
+      {/* ── TOP TOOLBAR ── */}
+      <View style={s.toolbar}>
+        <View style={s.toolbarGroup}>
+          <Pressable
+            style={({ pressed }) => [
+              s.toolBtn,
+              s.toolBtnGreen,
+              pressed && s.toolBtnGreenFilled,
+              { marginLeft: 20 },
+            ]}
+            onPress={openAdd}
+          >
+            {({ pressed }) => (
+              <>
+                <Feather
+                  name="plus"
+                  size={14}
+                  color={pressed ? "#fff" : T.green}
+                />
+                <Text style={[s.btnTxt, { color: pressed ? "#fff" : T.green }]}>
+                  {" "}
+                  New
+                </Text>
+              </>
+            )}
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              s.toolBtn,
+              s.toolBtnRed,
+              pressed && s.toolBtnRedFilled,
+            ]}
+            onPress={removeSelected}
+          >
+            {({ pressed }) => (
+              <>
+                <Feather
+                  name="trash-2"
+                  size={14}
+                  color={pressed ? "#fff" : "#F87171"}
+                />
+                <Text
+                  style={[s.btnTxt, { color: pressed ? "#fff" : "#F87171" }]}
+                >
+                  {" "}
+                  Delete
+                </Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      </View>
+
+      {/* ── CONTENT AREA ── */}
+      <View style={s.content}>
+        {/* sub-header */}
+        <View style={s.subHeader}>
+          <View style={s.subHeaderLeft}>
+            <Text style={s.pageTitle}>Manage Hairstyles</Text>
+            {selected.length > 0 && (
+              <Text style={s.selectedHint}>{selected.length} selected</Text>
+            )}
+          </View>
+
+          <View style={s.subHeaderRight}>
+            {/* sort picker */}
+            <Pressable
+              style={s.sortBtn}
+              onPress={() => toggleSort(sortField === "name" ? "id" : "name")}
+            >
+              <Feather name="sliders" size={13} color={T.sub} />
+              <Text style={s.sortBtnTxt}>
+                {" "}
+                {sortField === "name" ? "Name" : "ID"}{" "}
+                {sortDir === "asc" ? "↑" : "↓"}
+              </Text>
+            </Pressable>
+
+            {/* search */}
+            <View style={s.searchBox}>
+              <Feather name="search" size={14} color={T.sub} />
+              <TextInput
+                placeholder="Search..."
+                value={search}
+                onChangeText={setSearch}
+                style={s.searchInput}
+                placeholderTextColor={T.sub}
+              />
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
+
+        {/* grid */}
+        {loading ? (
+          <ActivityIndicator
+            style={{ marginTop: 60 }}
+            color={T.purple}
+            size="large"
+          />
+        ) : filtered.length === 0 ? (
+          <View style={s.empty}>
+            <Feather name="inbox" size={40} color={T.border} />
+            <Text style={s.emptyTxt}>No hairstyles found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(i) => String(i.id)}
+            numColumns={NUM_COLS}
+            renderItem={renderCard}
+            contentContainerStyle={s.grid}
+            columnWrapperStyle={s.row}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+
+      {/* ── IMAGE PREVIEW ── */}
+      <Modal visible={!!previewUri} transparent animationType="fade">
+        <Pressable style={s.previewOverlay} onPress={() => setPreviewUri(null)}>
+          <View style={s.previewCard}>
+            <Image
+              source={{ uri: previewUri ?? "" }}
+              style={s.previewImg}
+              resizeMode="contain"
+            />
+            <Pressable
+              style={s.previewClose}
+              onPress={() => setPreviewUri(null)}
+            >
+              <Feather name="x" size={14} color={T.sub} />
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* ── ADD / EDIT MODAL ── */}
+      <Modal visible={modal} transparent animationType="fade">
+        <View style={s.overlay}>
+          <View style={s.sheet}>
+            <View style={s.sheetHeader}>
+              <Text style={s.sheetTitle}>
+                {editing ? "Edit Hairstyle" : "New Hairstyle"}
+              </Text>
+              <Pressable onPress={() => setModal(false)}>
+                <Feather name="x" size={20} color={T.sub} />
+              </Pressable>
+            </View>
+
+            <Text style={s.label}>Name</Text>
+            <TextInput
+              placeholder="Enter hairstyle name"
+              value={form.name}
+              onChangeText={(t) => setForm((f) => ({ ...f, name: t }))}
+              style={s.input}
+              placeholderTextColor={T.sub}
+            />
+
+            <Text style={s.label}>Image</Text>
+            <Pressable style={s.uploadBtn} onPress={pickImage}>
+              <Feather name="image" size={16} color={T.sub} />
+              <Text style={s.uploadTxt}>
+                {form.imageUri ? "Image selected ✓" : "Pick image"}
+              </Text>
+            </Pressable>
+
+            <View style={s.sheetFooter}>
+              <Pressable style={s.cancelBtn} onPress={() => setModal(false)}>
+                <Text style={s.cancelTxt}>Cancel</Text>
+              </Pressable>
+              <Pressable style={s.saveBtn} onPress={submit}>
+                <Text style={s.saveTxt}>{editing ? "Update" : "Create"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
 }
 
-/* ──────────────────────────────────────── styles ── */
+/* ─────────────────────────────── STYLES ─────────────────────────────── */
 const s = StyleSheet.create({
-  root:    { flex: 1, backgroundColor: C.bg },
-  listPad: { padding: 16, paddingBottom: 100 },
-  centered:{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  loadTxt: { marginTop: 12, color: C.sub, fontSize: 13 },
-  emptyTxt:{ color: C.sub, fontSize: 14, marginTop: 4 },
+  container: { flex: 1, backgroundColor: T.bg },
 
-  /* Card */
+  /* ── toolbar ── */
+  toolbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: T.card,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: T.border,
+  },
+  toolbarGroup: { flexDirection: "row", gap: 10 },
+
+  toolBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
+  },
+  toolBtnGreen: { borderColor: T.green },
+  toolBtnGreenFilled: { backgroundColor: T.green },
+  toolBtnRed: { borderColor: "#F87171" },
+  toolBtnRedFilled: { backgroundColor: "#F87171" },
+  toolBtnNavy: { borderColor: T.navy },
+  toolBtnNavyFilled: { backgroundColor: T.navy },
+  toolBtnPurple: { borderColor: T.purple },
+  toolBtnPurpleFilled: { backgroundColor: T.purple },
+  btnTxt: { fontSize: 13, fontWeight: "600" },
+
+  /* ── content ── */
+  content: { flex: 1, paddingHorizontal: H_PAD },
+
+  subHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+  },
+  subHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  subHeaderRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+
+  pageTitle: { fontSize: 30, fontWeight: "700", color: T.text },
+  selectedHint: { fontSize: 12, color: T.purple, fontWeight: "600" },
+
+  sortBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: T.card,
+  },
+  sortBtnTxt: { fontSize: 12, color: T.sub },
+
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: T.card,
+    gap: 6,
+    minWidth: 180,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: T.text, padding: 0 },
+
+  /* ── grid ── */
+  grid: { paddingBottom: 24 },
+
+  /* ── card ── */
   card: {
-    backgroundColor: C.white, borderRadius: 18, padding: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    width: CARD_W,
+    backgroundColor: T.card,
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
-  thumb:       { width: 64, height: 80, borderRadius: 12, backgroundColor: '#EEE9E2' },
-  cardBody:    { flex: 1, gap: 2 },
-  cardName:    { fontSize: 15, fontWeight: '700', color: C.primary },
-  cardId:      { fontSize: 11, color: C.sub },
-  cardDate:    { fontSize: 11, color: C.muted },
-  cardActions: { gap: 8 },
-  iconBtn:     { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  editBtn:     { backgroundColor: '#FEF3C7' },
-  delBtn:      { backgroundColor: '#FEE2E2' },
-  iconBtnTxt:  { fontSize: 16 },
-  pressed:     { opacity: 0.7, transform: [{ scale: 0.95 }] },
-
-  /* FAB */
-  fab: {
-    position: 'absolute', bottom: 24, alignSelf: 'center',
-    backgroundColor: C.accent, borderRadius: 30,
-    paddingHorizontal: 28, paddingVertical: 15,
-    shadowColor: C.accent, shadowOpacity: 0.45, shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 }, elevation: 10,
-  },
-  fabTxt: { color: '#fff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
-
-  /* Modal */
-  overlay:  { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: {
-    backgroundColor: C.white,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
-  },
-  handle:     { width: 36, height: 4, backgroundColor: '#DDD', borderRadius: 2, alignSelf: 'center', marginBottom: 18 },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: C.primary, marginBottom: 22 },
-
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 8 },
-  input: {
-    backgroundColor: '#FAFAF8', borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: C.primary, marginBottom: 18,
+  cardSelected: {
+    shadowColor: T.purple,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
 
-  imgPick: {
-    borderRadius: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: C.muted,
-    height: 130, overflow: 'hidden', marginBottom: 24,
+  cardImgWrap: {
+    width: CARD_W,
+    height: IMG_H,
+    overflow: "hidden",
+    backgroundColor: "#F1F5F9",
   },
-  imgPickPreviewWrap: { flex: 1 },
-  imgPickPreview: { width: '100%', height: '100%' },
-  imgPickOverlay: {
+  cardImg: {
+    width: CARD_W,
+    height: IMG_H * 1.35,
+    marginTop: 20,
+  },
+  selectedDim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: "rgba(99,102,241,0.18)",
   },
-  imgPickEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  imgPickTxt:   { fontSize: 13, color: C.sub, fontWeight: '600' },
 
-  sheetBtns:    { flexDirection: 'row', gap: 12 },
-  btnCancel: {
-    flex: 1, borderWidth: 1.5, borderColor: C.border,
-    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+  /* overlay elements on image */
+  checkOverlay: {
+    position: "absolute",
+    top: 8,
+    right: 8,
   },
-  btnCancelTxt: { fontSize: 14, fontWeight: '700', color: '#777' },
-  btnSave: {
-    flex: 2, backgroundColor: C.accent, borderRadius: 14,
-    paddingVertical: 14, alignItems: 'center',
-    shadowColor: C.accent, shadowOpacity: 0.35,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  btnSaveTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  checkboxActive: {
+    backgroundColor: T.purple,
+    borderColor: T.purple,
+  },
+
+  cardBody: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  cardName: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: T.text,
+    letterSpacing: 0.1,
+  },
+  cardId: {
+    fontSize: 16,
+    color: T.sub,
+    marginTop: 3,
+  },
+
+  /* card footer — icon buttons */
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBtnEdit: { borderColor: T.green },
+  iconBtnEditFilled: { backgroundColor: T.green, borderColor: T.green },
+  iconBtnDel: { borderColor: T.orange },
+  iconBtnDelFilled: { backgroundColor: T.orange, borderColor: T.orange },
+
+  /* ── empty state ── */
+  empty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingBottom: 80,
+  },
+  emptyTxt: { fontSize: 14, color: T.sub },
+
+  /* ── image preview ── */
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewCard: {
+    width: SCREEN_W * 0.42,
+    maxHeight: SCREEN_H * 0.72,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  previewImg: {
+    width: SCREEN_W * 0.42,
+    height: SCREEN_H * 0.62,
+  },
+  previewClose: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* ── add/edit modal ── */
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sheet: {
+    width: "90%",
+    maxWidth: 440,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 24,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  sheetTitle: { fontSize: 17, fontWeight: "700", color: T.text },
+
+  label: { fontSize: 13, fontWeight: "600", color: T.text, marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: T.text,
+    marginBottom: 16,
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 24,
+    backgroundColor: "#F8F9FA",
+  },
+  uploadTxt: { fontSize: 13, color: T.sub },
+
+  sheetFooter: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
+  cancelBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  cancelTxt: { fontSize: 14, color: T.text },
+  saveBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: T.purple,
+  },
+  row: {
+    justifyContent: "space-between",
+    marginBottom: CARD_GAP,
+  },
+  saveTxt: { fontSize: 14, color: "#fff", fontWeight: "600" },
 });

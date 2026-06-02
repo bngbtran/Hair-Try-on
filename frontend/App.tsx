@@ -1,65 +1,41 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, Text, Image } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState } from "react";
+import { View, StyleSheet } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
-import UserScreen from './src/screens/UserScreen';
-import AdminScreen from './src/screens/AdminScreen';
-
-const Tab = createBottomTabNavigator();
-
-const ICON: Record<string, string> = {
-  'Thử tóc': '💇',
-  'Admin':   '⚙️',
-};
+import Sidebar, { NavKey } from "./src/components/Sidebar";
+import UserScreen from "./src/screens/UserScreen";
+import AdminScreen from "./src/screens/AdminScreen";
 
 export default function App() {
+  const [active, setActive] = useState<NavKey>("user");
+
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <NavigationContainer>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            tabBarIcon: () => (
-              <Text style={{ fontSize: 20 }}>{ICON[route.name]}</Text>
-            ),
-            tabBarActiveTintColor: '#4F46E5',
-            tabBarInactiveTintColor: '#9B9590',
-            tabBarStyle: {
-              backgroundColor: '#FFFFFF',
-              borderTopColor: '#EAE5DE',
-              height: Platform.OS === 'ios' ? 88 : 64,
-              paddingBottom: Platform.OS === 'ios' ? 28 : 10,
-              paddingTop: 8,
-            },
-            tabBarLabelStyle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-            headerStyle: { backgroundColor: '#18182C' },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: '800', fontSize: 17, letterSpacing: 0.3 },
-          })}
-        >
-          <Tab.Screen
-            name="Thử tóc"
-            component={UserScreen}
-            options={{
-              title: 'Hair Try-On',
-              headerTitle: () => (
-                <Image
-                  source={require('./assets/images/barber.png')}
-                  style={{ width: 120, height: 36, resizeMode: 'contain' }}
-                />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Admin"
-            component={AdminScreen}
-            options={{ title: 'Admin', headerTitle: 'Quản lý kiểu tóc' }}
-          />
-        </Tab.Navigator>
-      </NavigationContainer>
+      <StatusBar style="dark" />
+      <SafeAreaView style={s.root} edges={["top", "bottom", "left"]}>
+        <View style={s.layout}>
+          <Sidebar active={active} onChange={setActive} />
+          <View style={s.content}>
+            {active === "user"  && <UserScreen />}
+            {active === "admin" && <AdminScreen />}
+          </View>
+        </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
+
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#F4F6F8",
+  },
+  layout: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  content: {
+    flex: 1,
+  },
+});

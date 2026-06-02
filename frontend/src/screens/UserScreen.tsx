@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   FlatList,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,399 +13,550 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { Hairstyle, getHairstyles, hairImageUrl, tryOnHairstyle } from '../api/client';
-import ImageViewer from '../components/ImageViewer';
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import {
+  Hairstyle,
+  getHairstyles,
+  hairImageUrl,
+  tryOnHairstyle,
+} from "../api/client";
 
-const { width: SW } = Dimensions.get('window');
-const MAX_W  = Math.min(SW, 520);
+const { width: SW } = Dimensions.get("window");
+const MAX_W = Math.min(SW, 520);
 const CARD_W = Math.floor((MAX_W - 56) / 3);
 
+/* Admin vibe */
 const C = {
-  bg:      '#F7F4F0',
-  white:   '#FFFFFF',
-  primary: '#18182C',
-  accent:  '#4F46E5',
-  border:  '#EAE5DE',
-  sub:     '#9B9590',
-  muted:   '#C8C2BA',
-  error:   '#EF4444',
-  success: '#22C55E',
+  bg: "#F4F6F8",
+  white: "#FFFFFF",
+  text: "#0F172A",
+  sub: "#6C757D",
+  border: "#DEE2E6",
+  purple: "#6366F1",
 };
 
 export default function UserScreen() {
-  const [hairstyles, setHairstyles]   = useState<Hairstyle[]>([]);
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>([]);
   const [listLoading, setListLoading] = useState(true);
-  const [personUri, setPersonUri]     = useState<string | null>(null);
-  const [selectedId, setSelectedId]   = useState<number | null>(null);
-  const [selectedName, setSelectedName] = useState('');
-  const [busy, setBusy]               = useState(false);
-  const [resultUri, setResultUri]     = useState<string | null>(null);
-  const [viewerUri, setViewerUri]     = useState<string | null>(null);
 
-  useEffect(() => { fetchList(); }, []);
+  const [personUri, setPersonUri] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedName, setSelectedName] = useState("");
+
+  const [busy, setBusy] = useState(false);
+
+  const [resultUri, setResultUri] = useState<string | null>(null);
+  const [resultDialog, setResultDialog] = useState(false);
+
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchList();
+  }, []);
 
   async function fetchList() {
     try {
       setListLoading(true);
       setHairstyles(await getHairstyles());
     } catch {
-      Alert.alert('Lỗi kết nối', 'Không thể tải danh sách kiểu tóc.\nKiểm tra backend đã chạy chưa.');
+      Alert.alert("Error", "Cannot load hairstyles");
     } finally {
       setListLoading(false);
     }
   }
 
   async function pickPhoto() {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Cần quyền truy cập thư viện ảnh'); return; }
-    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.9,
       allowsEditing: true,
       aspect: [3, 4],
     });
+
     if (!res.canceled) {
       setPersonUri(res.assets[0].uri);
       setResultUri(null);
     }
   }
 
+  function downloadResult() {
+    if (!resultUri) return;
+
+    if (Platform.OS === "web") {
+      const a = document.createElement("a");
+      a.href = resultUri;
+      a.download = "tryon-result.png";
+      a.click();
+    } else {
+      Alert.alert("Download", "Long press image to save");
+    }
+  }
+
   async function run() {
     if (!personUri || !selectedId) return;
+
     setBusy(true);
     try {
-      setResultUri(await tryOnHairstyle(personUri, selectedId));
+      const uri = await tryOnHairstyle(personUri, selectedId);
+      setResultUri(uri);
+      setResultDialog(true);
     } catch (e: any) {
-      Alert.alert('Xử lý thất bại', e.message);
+      Alert.alert("Error", e.message);
     } finally {
       setBusy(false);
     }
   }
 
-  function downloadResult() {
-    if (!resultUri) return;
-    if (Platform.OS === 'web') {
-      const a = document.createElement('a');
-      a.href = resultUri;
-      a.download = 'tryon_result.png';
-      a.click();
-    } else {
-      Alert.alert('Lưu ảnh', 'Nhấn giữ vào ảnh kết quả để lưu về thiết bị');
-    }
-  }
+  const renderCard = useCallback(
+    ({ item }: { item: Hairstyle }) => {
+      const active = item.id === selectedId;
 
-  const renderCard = useCallback(({ item }: { item: Hairstyle }) => {
-    const active = item.id === selectedId;
-    return (
-      <Pressable
-        style={({ pressed }) => [s.card, active && s.cardActive, pressed && s.cardPressed]}
-        onPress={() => { setSelectedId(item.id); setSelectedName(item.name); setResultUri(null); }}
-      >
-        {active && (
-          <View style={s.cardBadge}>
-            <Text style={s.cardBadgeTxt}>✓</Text>
+      return (
+        <Pressable
+          style={({ pressed }) => [
+            s.card,
+            active && s.cardActive,
+            pressed && s.cardPressed,
+          ]}
+          onPress={() => {
+            setSelectedId(item.id);
+            setSelectedName(item.name);
+            setResultUri(null);
+          }}
+        >
+          {/* Preview badge */}
+          <Pressable
+            style={s.previewBadge}
+            onPress={() => setPreviewUri(hairImageUrl(item.image_path))}
+          >
+            <Text style={s.previewTxt}>Preview</Text>
+          </Pressable>
+
+          {active && (
+            <View style={s.badge}>
+              <Text style={s.badgeTxt}>✓</Text>
+            </View>
+          )}
+
+          <View style={s.imgWrap}>
+            <Image
+              source={{ uri: hairImageUrl(item.image_path) }}
+              style={s.cardImg}
+              resizeMode="contain"
+            />
           </View>
-        )}
-        <Image
-          source={{ uri: hairImageUrl(item.image_path) }}
-          style={s.cardImg}
-          resizeMode="contain"
-        />
-        <Text style={s.cardLabel} numberOfLines={1}>{item.name}</Text>
-      </Pressable>
-    );
-  }, [selectedId]);
 
-  const canRun = !!personUri && !!selectedId && !busy;
+          <Text style={s.cardLabel} numberOfLines={1}>
+            {item.name}
+          </Text>
+        </Pressable>
+      );
+    },
+    [selectedId],
+  );
 
-  /* ─────────────────────────────────────────────────── render ── */
   return (
     <View style={s.root}>
-      <ScrollView
-        contentContainerStyle={s.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-
-        {/* ── Photo upload ──────────────────────────────────── */}
+      <ScrollView contentContainerStyle={s.scroll}>
+        {/* Upload */}
         <View style={s.block}>
-          <SectionLabel>Ảnh của bạn</SectionLabel>
+          <Text style={s.label}>Your Photo</Text>
 
           {!personUri ? (
-            <TouchableOpacity style={s.dropzone} onPress={pickPhoto} activeOpacity={0.85}>
-              <View style={s.dropIcon}><Text style={{ fontSize: 28 }}>📷</Text></View>
-              <Text style={s.dropTitle}>Chọn hoặc chụp ảnh</Text>
-              <Text style={s.dropHint}>PNG · JPG · HEIC</Text>
-            </TouchableOpacity>
+            <Pressable style={s.uploadBox} onPress={pickPhoto}>
+              <Text style={s.uploadTxt}>📷 Select Photo</Text>
+            </Pressable>
           ) : (
-            <View style={s.photoCard}>
-              {/* ảnh nhỏ gọn, không chiếm toàn bộ màn hình */}
-              <Image source={{ uri: personUri }} style={s.photoThumb} resizeMode="cover" />
-              <View style={s.photoMeta}>
-                <View style={s.photoReadyBadge}>
-                  <Text style={s.photoReadyTxt}>✓ Ảnh đã chọn</Text>
-                </View>
-                <TouchableOpacity style={s.changeBtn} onPress={pickPhoto} activeOpacity={0.8}>
-                  <Text style={s.changeBtnTxt}>Đổi ảnh</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={s.photoCardCenter}>
+              <Image
+                source={{ uri: personUri }}
+                style={s.photo}
+                resizeMode="cover"
+              />
+              <Pressable style={s.changePhotoBtn} onPress={pickPhoto}>
+                <Text style={s.changePhotoTxt}>📷 Change Photo</Text>
+              </Pressable>
             </View>
           )}
         </View>
 
-        {/* ── Hairstyle grid ─────────────────────────────────── */}
-        {!resultUri && (
-          <View style={s.block}>
-            <View style={s.rowBetween}>
-              <SectionLabel>Chọn kiểu tóc</SectionLabel>
-              {selectedId !== null && (
-                <Text style={s.selectedPill}>{selectedName}</Text>
-              )}
+        {/* Grid */}
+        <View style={s.block}>
+          <Text style={s.label}>Choose Hairstyle</Text>
+
+          {listLoading ? (
+            <ActivityIndicator color={C.purple} />
+          ) : (
+            <FlatList
+              data={hairstyles}
+              keyExtractor={(i) => String(i.id)}
+              renderItem={renderCard}
+              numColumns={3}
+              scrollEnabled={false}
+              columnWrapperStyle={s.row}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={s.footer}>
+        <TouchableOpacity
+          disabled={!personUri || !selectedId || busy}
+          onPress={run}
+          style={[s.runBtn, (!personUri || !selectedId || busy) && s.runBtnOff]}
+        >
+          {busy ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={s.runTxt}>✨ Try Now</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* RESULT DIALOG */}
+      <Modal visible={resultDialog} transparent animationType="fade">
+        <View style={s.modalBg}>
+          <View style={s.modalCardCompact}>
+            {/* Header */}
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Result Preview</Text>
+              <Pressable onPress={() => setResultDialog(false)}>
+                <Text style={s.modalXBtn}>✕</Text>
+              </Pressable>
             </View>
 
-            {listLoading ? (
-              <View style={s.centered}>
-                <ActivityIndicator color={C.accent} size="large" />
-                <Text style={s.loadingTxt}>Đang tải...</Text>
+            {/* BEFORE / AFTER */}
+            <View style={s.compareRow}>
+              <View style={s.compareCol}>
+                <Text style={s.compareLabel}>Before</Text>
+                <Pressable onPress={() => setPreviewUri(personUri)}>
+                  <Image
+                    source={{ uri: personUri || "" }}
+                    style={s.compareImgBig}
+                    resizeMode="cover"
+                  />
+                </Pressable>
               </View>
-            ) : hairstyles.length === 0 ? (
-              <View style={s.centered}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>💇</Text>
-                <Text style={s.emptyTxt}>Chưa có kiểu tóc nào</Text>
-                <TouchableOpacity onPress={fetchList} style={s.retryBtn}>
-                  <Text style={s.retryTxt}>Tải lại</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <FlatList
-                data={hairstyles}
-                keyExtractor={i => String(i.id)}
-                renderItem={renderCard}
-                numColumns={3}
-                scrollEnabled={false}
-                columnWrapperStyle={s.gridRow}
-              />
-            )}
-          </View>
-        )}
 
-        {/* ── Result ─────────────────────────────────────────── */}
-        {resultUri && (
-          <View style={s.block}>
-            <SectionLabel>Kết quả</SectionLabel>
-            <Text style={s.resCaption}>
-              Kiểu tóc: <Text style={s.resName}>{selectedName}</Text>
-            </Text>
-
-            <View style={s.baRow}>
-              <View style={s.baCol}>
-                <Text style={s.baTag}>TRƯỚC</Text>
-                <Image source={{ uri: personUri! }} style={s.baImg} resizeMode="cover" />
-              </View>
-              <View style={s.baArrow}><Text style={{ color: C.muted, fontSize: 18 }}>→</Text></View>
-              <View style={s.baCol}>
-                <Text style={[s.baTag, s.baTagAfter]}>SAU</Text>
-                <Pressable onPress={() => setViewerUri(resultUri)}>
-                  <Image source={{ uri: resultUri }} style={[s.baImg, s.baImgAfter]} resizeMode="cover" />
-                  <View style={s.zoomHint}>
-                    <Text style={s.zoomHintTxt}>🔍 Nhấn để xem to</Text>
-                  </View>
+              <View style={s.compareCol}>
+                <Text style={[s.compareLabel, { color: C.purple }]}>After</Text>
+                <Pressable onPress={() => setPreviewUri(resultUri)}>
+                  <Image
+                    source={{ uri: resultUri || "" }}
+                    style={[s.compareImgBig, s.afterBorder]}
+                    resizeMode="cover"
+                  />
                 </Pressable>
               </View>
             </View>
 
-            <View style={s.resActions}>
-              <TouchableOpacity style={s.btnPrimary} onPress={downloadResult} activeOpacity={0.85}>
-                <Text style={s.btnPrimaryTxt}>↓ Tải xuống</Text>
+            {/* ACTIONS */}
+            <View style={s.modalActionsCompact}>
+              <TouchableOpacity style={s.btnPrimary} onPress={downloadResult}>
+                <Text style={s.btnText}>Download</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.btnGhost} onPress={() => setResultUri(null)} activeOpacity={0.85}>
-                <Text style={s.btnGhostTxt}>Thử kiểu khác</Text>
+
+              <TouchableOpacity
+                style={s.btnGhost}
+                onPress={() => setResultDialog(false)}
+              >
+                <Text style={s.btnGhostText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
-        )}
-
-      </ScrollView>
-
-      {/* ── Image Viewer ──────────────────────────────────────── */}
-      <ImageViewer
-        uri={viewerUri}
-        label={selectedName || 'Kết quả'}
-        onClose={() => setViewerUri(null)}
-        onDownload={viewerUri ? () => { downloadResult(); setViewerUri(null); } : undefined}
-      />
-
-      {/* ── Sticky footer ─────────────────────────────────────── */}
-      {!resultUri && (
-        <View style={s.footer}>
-          <TouchableOpacity
-            style={[s.tryBtn, !canRun && s.tryBtnOff]}
-            onPress={run}
-            disabled={!canRun}
-            activeOpacity={0.9}
-          >
-            {busy
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.tryBtnTxt}>
-                  {!personUri ? 'Chọn ảnh để bắt đầu'
-                    : !selectedId ? 'Chọn kiểu tóc'
-                    : '✨  Thử ngay'}
-                </Text>
-            }
-          </TouchableOpacity>
         </View>
-      )}
+      </Modal>
+
+      {/* HAIR PREVIEW MODAL — rendered last to stack on top of everything */}
+      <Modal visible={!!previewUri} transparent animationType="fade">
+        <Pressable style={s.modalBg} onPress={() => setPreviewUri(null)}>
+          <View style={s.previewBox}>
+            <Image
+              source={{ uri: previewUri ?? "" }}
+              style={s.previewImg}
+              resizeMode="contain"
+            />
+            <Pressable
+              style={s.previewClose}
+              onPress={() => setPreviewUri(null)}
+            >
+              <Text style={s.previewCloseTxt}>✕</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
-function SectionLabel({ children }: { children: string }) {
-  return <Text style={s.sectionLabel}>{children}</Text>;
-}
-
-/* ──────────────────────────────────────────── styles ── */
+/* STYLE */
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: C.bg },
-  scroll: { paddingBottom: 110, alignItems: 'center' },
-  block:  { width: '100%', maxWidth: MAX_W, paddingHorizontal: 20, marginTop: 24 },
+  root: { flex: 1, backgroundColor: C.bg },
+  scroll: { paddingBottom: 120, alignItems: "center" },
 
-  sectionLabel: {
-    fontSize: 11, fontWeight: '700', letterSpacing: 1.4,
-    textTransform: 'uppercase', color: C.sub, marginBottom: 12,
-  },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  selectedPill: {
-    fontSize: 11, color: C.accent, fontWeight: '700',
-    backgroundColor: '#EEF2FF', paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 20,
+  block: {
+    width: "100%",
+    maxWidth: MAX_W,
+    paddingHorizontal: 20,
+    marginTop: 24,
   },
 
-  /* Drop zone */
-  dropzone: {
-    backgroundColor: C.white, borderRadius: 18,
-    borderWidth: 2, borderStyle: 'dashed', borderColor: C.muted,
-    paddingVertical: 32, alignItems: 'center', gap: 6,
+  label: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: C.sub,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 12,
   },
-  dropIcon:  { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F0EDF8', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  dropTitle: { fontSize: 15, fontWeight: '700', color: C.primary },
-  dropHint:  { fontSize: 12, color: C.sub },
 
-  /* Photo card — ảnh nhỏ gọn bên trái, info bên phải */
-  photoCard: {
-    backgroundColor: C.white, borderRadius: 18, overflow: 'hidden',
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 12,
-    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+  uploadBox: {
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: "center",
   },
-  photoThumb: {
-    width: 80, height: 100,          // nhỏ gọn, không chiếm toàn màn hình
-    borderRadius: 12, backgroundColor: '#EDE8E2',
-  },
-  photoMeta: { flex: 1, gap: 10 },
-  photoReadyBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#F0FDF4', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4,
-  },
-  photoReadyTxt: { fontSize: 12, color: C.success, fontWeight: '700' },
-  changeBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: C.primary, borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 7,
-  },
-  changeBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  uploadTxt: { color: C.text, fontWeight: "600" },
 
-  /* Grid */
-  gridRow: { justifyContent: 'flex-start', gap: 8, marginBottom: 8 },
+  changePhotoBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  changePhotoTxt: { fontSize: 13, color: C.sub, fontWeight: "600" },
+
+  photoCardCenter: {
+    backgroundColor: C.white,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+  },
+  photo: {
+    width: 160,
+    height: 200,
+    borderRadius: 12,
+  },
+
+  row: { justifyContent: "space-between", marginBottom: 10 },
+
   card: {
-    width: CARD_W, borderRadius: 14, overflow: 'hidden',
+    width: CARD_W,
     backgroundColor: C.white,
-    borderWidth: 2, borderColor: 'transparent',
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
-    position: 'relative',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: "hidden",
   },
-  cardActive:  { borderColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.25, shadowRadius: 8 },
+
+  cardActive: { borderColor: C.purple },
   cardPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  cardBadge: {
-    position: 'absolute', top: 5, right: 5, zIndex: 2,
-    backgroundColor: C.accent, borderRadius: 10,
-    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
-  },
-  cardBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  cardImg:      { width: '100%', height: CARD_W, backgroundColor: '#F5F3EF' },
-  cardLabel:    { fontSize: 10, textAlign: 'center', paddingVertical: 5, paddingHorizontal: 3, color: '#555' },
 
-  /* Loading / empty */
-  centered:   { alignItems: 'center', paddingVertical: 32 },
-  loadingTxt: { marginTop: 10, fontSize: 13, color: C.sub },
-  emptyTxt:   { fontSize: 14, color: C.sub },
-  retryBtn:   { marginTop: 12, backgroundColor: C.primary, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8 },
-  retryTxt:   { color: '#fff', fontSize: 13, fontWeight: '600' },
+  imgWrap: {
+    height: CARD_W,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8F8FB",
+  },
 
-  /* Result */
-  resCaption: { fontSize: 13, color: '#666', marginBottom: 16 },
-  resName:    { fontWeight: '700', color: C.primary },
-  baRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  baArrow: { paddingTop: 20 },
-  baCol:  { flex: 1 },
-  baTag:  {
-    fontSize: 10, fontWeight: '700', letterSpacing: 1,
-    color: C.sub, textAlign: 'center', marginBottom: 6,
-  },
-  baTagAfter: { color: C.accent },
-  baImg:  {
-    width: '100%', aspectRatio: 3 / 4,
-    borderRadius: 16, backgroundColor: '#EDE8E2',
-  },
-  baImgAfter: {
-    borderWidth: 3, borderColor: C.accent,
-    shadowColor: C.accent, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
-  },
-  zoomHint: {
-    position: 'absolute', bottom: 8, left: 0, right: 0,
-    alignItems: 'center',
-  },
-  zoomHintTxt: {
-    fontSize: 10, color: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 10, overflow: 'hidden',
-  },
-  resActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
-  btnPrimary: {
-    flex: 1, backgroundColor: C.primary, borderRadius: 14,
-    paddingVertical: 14, alignItems: 'center',
-    shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  btnPrimaryTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  btnGhost: {
-    flex: 1, backgroundColor: 'transparent', borderRadius: 14,
-    borderWidth: 1.5, borderColor: C.primary, paddingVertical: 14, alignItems: 'center',
-  },
-  btnGhostTxt: { color: C.primary, fontSize: 14, fontWeight: '700' },
+  cardImg: { width: "90%", height: "90%" },
 
-  /* Footer */
+  cardLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+    padding: 6,
+  },
+
+  badge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: C.purple,
+    width: 18,
+    height: 18,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeTxt: { color: "#fff", fontSize: 10, fontWeight: "800" },
+
+  previewBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  previewTxt: { color: "#fff", fontSize: 9, fontWeight: "700" },
+
   footer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: C.white,
-    paddingHorizontal: 20, paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 16,
-    borderTopWidth: 1, borderTopColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 }, elevation: 12,
+    borderTopWidth: 1,
+    borderColor: C.border,
+    padding: 14,
   },
-  tryBtn: {
-    backgroundColor: C.accent, borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center',
-    shadowColor: C.accent, shadowOpacity: 0.4,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+
+  runBtn: {
+    backgroundColor: C.purple,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
   },
-  tryBtnOff: { backgroundColor: C.muted, shadowOpacity: 0 },
-  tryBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  runBtnOff: { backgroundColor: "#C7C7D1" },
+  runTxt: { color: "#fff", fontWeight: "700" },
+
+  /* RESULT MODAL */
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "90%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+  },
+  modalTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#0F172A",
+  },
+  modalImg: {
+    width: "100%",
+    height: 360,
+    borderRadius: 12,
+  },
+
+  modalActions: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 10,
+  },
+
+  btnPrimary: {
+    flex: 1,
+    backgroundColor: C.purple,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  btnText: { color: "#fff", fontWeight: "700" },
+
+  btnGhost: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  btnGhostText: { color: C.text, fontWeight: "700" },
+
+  previewBox: {
+    width: "80%",
+    height: "72%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  previewImg: {
+    width: "100%",
+    height: "100%",
+  },
+  previewClose: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewCloseTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
+
+  compareImgBig: {
+    alignSelf: "stretch",
+    aspectRatio: 3 / 4,
+    borderRadius: 10,
+    backgroundColor: "#F1F1F1",
+  },
+  modalCardCompact: {
+    width: "68%",
+    maxWidth: 480,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalXBtn: {
+    fontSize: 16,
+    color: "#6C757D",
+    paddingHorizontal: 4,
+  },
+  compareRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+
+  compareCol: {
+    flex: 1,
+    alignItems: "stretch",
+  },
+
+  compareLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6C757D",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+
+  compareImg: {
+    width: 90,
+    height: 120,
+    borderRadius: 10,
+    backgroundColor: "#F1F1F1",
+  },
+
+  afterBorder: {
+    borderWidth: 2,
+    borderColor: "#6366F1",
+  },
+
+  compareArrow: {
+    paddingHorizontal: 6,
+  },
+
+  modalActionsCompact: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
 });
