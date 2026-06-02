@@ -2,11 +2,11 @@ services:
   - type: web
     name: hair-tryon-api
     runtime: python
-    plan: standard          # 2GB RAM — cần cho MediaPipe + OpenCV
+    plan: standard
     region: singapore
     rootDir: backend
-    buildCommand: apt-get update -y && apt-get install -y --no-install-recommends libgles2 libegl1 libgl1 libglib2.0-0 && pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: bash build.sh
+    startCommand: LD_LIBRARY_PATH=/opt/render/project/src/backend/libs:$LD_LIBRARY_PATH uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
     disk:
       name: hair-tryon-data
@@ -14,6 +14,8 @@ services:
       sizeGB: 2
 
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: DATABASE_URL
         value: sqlite:////data/hairstyle.db
       - key: ASSETS_DIR
