@@ -1,7 +1,6 @@
 import os
 import urllib.request
 
-import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
@@ -26,21 +25,40 @@ for _fname, _url in _MODELS.items():
         urllib.request.urlretrieve(_url, _fpath)
         print(f"Done: {_fname}")
 
-_detector_path   = os.path.join(_MODELS_DIR, "face_detector.tflite")
+_detector_path = os.path.join(_MODELS_DIR, "face_detector.tflite")
 _landmarker_path = os.path.join(_MODELS_DIR, "face_landmarker.task")
 
-face_detector = vision.FaceDetector.create_from_options(
-    vision.FaceDetectorOptions(
-        base_options=python.BaseOptions(model_asset_path=_detector_path),
-        min_detection_confidence=0.5,
-    )
-)
+_face_detector = None
+_face_landmarker = None
 
-face_landmarker = vision.FaceLandmarker.create_from_options(
-    vision.FaceLandmarkerOptions(
-        base_options=python.BaseOptions(model_asset_path=_landmarker_path),
-        num_faces=1,
-    )
-)
 
-print("MediaPipe face models loaded")
+def get_face_detector():
+    global _face_detector
+
+    if _face_detector is None:
+        _face_detector = vision.FaceDetector.create_from_options(
+            vision.FaceDetectorOptions(
+                base_options=python.BaseOptions(
+                    model_asset_path=_detector_path
+                ),
+                min_detection_confidence=0.5,
+            )
+        )
+
+    return _face_detector
+
+
+def get_face_landmarker():
+    global _face_landmarker
+
+    if _face_landmarker is None:
+        _face_landmarker = vision.FaceLandmarker.create_from_options(
+            vision.FaceLandmarkerOptions(
+                base_options=python.BaseOptions(
+                    model_asset_path=_landmarker_path
+                ),
+                num_faces=1,
+            )
+        )
+
+    return _face_landmarker
