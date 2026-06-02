@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform, Text } from 'react-native';
+import { Platform, Text, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import UserScreen from './src/screens/UserScreen';
@@ -43,7 +43,15 @@ export default function App() {
           <Tab.Screen
             name="Thử tóc"
             component={UserScreen}
-            options={{ title: 'Hair Try-On', headerTitle: 'Hair Try-On' }}
+            options={{
+              title: 'Hair Try-On',
+              headerTitle: () => (
+                <Image
+                  source={require('./assets/images/barber.png')}
+                  style={{ width: 120, height: 36, resizeMode: 'contain' }}
+                />
+              ),
+            }}
           />
           <Tab.Screen
             name="Admin"
