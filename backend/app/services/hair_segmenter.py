@@ -12,7 +12,9 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 
-_MODELS_DIR = os.environ.get("MODELS_DIR", ".")
+from app.utils.models_dir import resolve_models_dir
+
+_MODELS_DIR = resolve_models_dir()
 MODEL_PATH = os.path.join(_MODELS_DIR, "hair_segmenter.tflite")
 
 MODEL_URL = (
@@ -20,7 +22,6 @@ MODEL_URL = (
     "image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite"
 )
 
-os.makedirs(_MODELS_DIR, exist_ok=True)
 if not os.path.exists(MODEL_PATH):
     print("Downloading Hair Segmenter Model...")
     urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)

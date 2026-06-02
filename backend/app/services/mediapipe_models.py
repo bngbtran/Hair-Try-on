@@ -4,8 +4,9 @@ import urllib.request
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-_MODELS_DIR = os.environ.get("MODELS_DIR", ".")
-os.makedirs(_MODELS_DIR, exist_ok=True)
+from app.utils.models_dir import resolve_models_dir
+
+_MODELS_DIR = resolve_models_dir()
 
 _MODELS = {
     "face_detector.tflite": (
