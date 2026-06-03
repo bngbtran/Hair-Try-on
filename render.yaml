@@ -6,7 +6,7 @@ services:
     region: singapore
     rootDir: backend
     buildCommand: bash build.sh
-    startCommand: LD_LIBRARY_PATH=/opt/render/project/src/backend/libs:$LD_LIBRARY_PATH uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: LD_LIBRARY_PATH=/opt/render/project/src/backend/libs:/usr/local/lib:$LD_LIBRARY_PATH uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
     disk:
       name: hair-tryon-data
@@ -15,7 +15,7 @@ services:
 
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.9"
+        value: 3.11.9
       # ── Supabase ──────────────────────────────────────────────────────────
       - key: SUPABASE_URL
         sync: false          # set manually in Render dashboard
