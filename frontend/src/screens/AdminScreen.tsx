@@ -24,25 +24,27 @@ import {
 } from "../api/client";
 
 const T = {
-  bg: "#F4F6F8",
-  card: "#FFFFFF",
-  text: "#0F172A",
+  bg: "#ffffff",
+  card: "#ffffff",
+  text: "#030303",
   sub: "#6C757D",
   border: "#DEE2E6",
-  green: "#22C55E",
+  green: "#1c9770",
   red: "#EF4444",
   orange: "#F97316",
-  purple: "#6366F1",
-  navy: "#1E293B",
-  link: "#3B82F6",
+  purple: "#1c9770",
+  navy: "#030303",
+  link: "#1c9770",
 };
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const SIDEBAR_W = 64; // width của Sidebar trong App.tsx
 const NUM_COLS = 3;
-const H_PAD = 40;
-const CARD_GAP = 10;
-const CARD_W = (SCREEN_W - H_PAD * 2 - CARD_GAP * (NUM_COLS - 1)) / NUM_COLS;
-const IMG_H = CARD_W * 0.88;
+const H_PAD = 20;
+const CARD_GAP = 12;
+const CONTENT_W = SCREEN_W - SIDEBAR_W;
+const CARD_W = (CONTENT_W - H_PAD * 2 - CARD_GAP * (NUM_COLS - 1)) / NUM_COLS;
+const IMG_H = CARD_W * 1.05;
 
 type SortField = "id" | "name";
 
@@ -495,7 +497,7 @@ const s = StyleSheet.create({
     backgroundColor: T.card,
     borderRadius: 12,
     overflow: "hidden",
-    shadowColor: "#0F172A",
+    shadowColor: "#030303",
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -512,7 +514,7 @@ const s = StyleSheet.create({
     width: CARD_W,
     height: IMG_H,
     overflow: "hidden",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#f0faf6",
   },
   cardImg: {
     width: CARD_W,
@@ -521,7 +523,7 @@ const s = StyleSheet.create({
   },
   selectedDim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(99,102,241,0.18)",
+    backgroundColor: "rgba(28,151,112,0.18)",
   },
 
   /* overlay elements on image */
@@ -671,7 +673,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 24,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#f0faf6",
   },
   uploadTxt: { fontSize: 13, color: T.sub },
 

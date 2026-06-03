@@ -19,9 +19,9 @@ interface Props {
   onChange: (key: NavKey) => void;
 }
 
-const PURPLE = "#6366F1";
+const PURPLE = "#1c9770";
 const MUTED  = "#94A3B8";
-const BG     = "#FFFFFF";
+const BG     = "#ffffff";
 const BORDER = "#F1F5F9";
 
 export default function Sidebar({ active, onChange }: Props) {
@@ -115,10 +115,10 @@ const s = StyleSheet.create({
     position: "relative",
   },
   navBtnActive: {
-    backgroundColor: "#EEF2FF",
+    backgroundColor: "#e8f5f0",
   },
   navBtnPressed: {
-    backgroundColor: "#F8FAFF",
+    backgroundColor: "#f0faf6",
   },
 
   activeBar: {

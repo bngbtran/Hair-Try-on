@@ -28,12 +28,12 @@ const CARD_W = Math.floor((MAX_W - 56) / 3);
 
 /* Admin vibe */
 const C = {
-  bg: "#F4F6F8",
-  white: "#FFFFFF",
-  text: "#0F172A",
+  bg: "#ffffff",
+  white: "#ffffff",
+  text: "#030303",
   sub: "#6C757D",
   border: "#DEE2E6",
-  purple: "#6366F1",
+  purple: "#1c9770",
 };
 
 export default function UserScreen() {

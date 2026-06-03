@@ -29,7 +29,7 @@ export default function App() {
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F4F6F8",
+    backgroundColor: "#ffffff",
   },
   layout: {
     flex: 1,
