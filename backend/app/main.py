@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,11 +8,34 @@ from app.api.tryon import router as tryon_router
 
 app = FastAPI(title="Hair Try-On API")
 
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# ALLOWED_ORIGINS: danh sách origins cách nhau bằng dấu phẩy
+# Mặc định cho phép Vercel production + Expo local dev
+_raw = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "https://tranbnb-hairtryon.vercel.app,"
+    "http://localhost:8081,"
+    "http://localhost:19006,"
+    "http://localhost:3000",
+)
+ALLOWED_ORIGINS = [o.strip() for o in _raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+    ],
+    expose_headers=["Content-Length", "Content-Type"],
+    max_age=3600,  # cache preflight 1 giờ
 )
 
 app.include_router(admin_router)

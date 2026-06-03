@@ -29,3 +29,5 @@ services:
         value: "1"
       - key: LIBGL_ALWAYS_SOFTWARE
         value: "1"
+      - key: ALLOWED_ORIGINS
+        value: https://tranbnb-hairtryon.vercel.app,http://localhost:8081,http://localhost:19006
