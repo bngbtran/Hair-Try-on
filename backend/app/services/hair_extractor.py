@@ -1,5 +1,6 @@
 import io
 import re
+import unicodedata
 import uuid
 
 from PIL import Image
@@ -18,6 +19,9 @@ def get_segmenter():
 
 
 def _safe_filename(name: str) -> str:
+    # Chuẩn hóa Unicode → bỏ dấu → giữ ASCII (ư→u, ổ→o, ầ→a ...)
+    name = unicodedata.normalize("NFKD", name)
+    name = name.encode("ascii", "ignore").decode("ascii")
     name = name.strip().lower()
     name = re.sub(r"[^\w\s-]", "", name)
     name = re.sub(r"[\s]+", "_", name)
