@@ -17,7 +17,7 @@ export default function App() {
         <View style={s.layout}>
           <Sidebar active={active} onChange={setActive} />
           <View style={s.content}>
-            {active === "user"  && <UserScreen />}
+            {active === "user" && <UserScreen />}
             {active === "admin" && <AdminScreen />}
           </View>
         </View>

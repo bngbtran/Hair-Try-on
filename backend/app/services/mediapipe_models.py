@@ -39,9 +39,7 @@ def get_face_detector():
     if _face_detector is None:
         _face_detector = vision.FaceDetector.create_from_options(
             vision.FaceDetectorOptions(
-                base_options=python.BaseOptions(
-                    model_asset_path=_detector_path
-                ),
+                base_options=python.BaseOptions(model_asset_path=_detector_path),
                 min_detection_confidence=0.5,
             )
         )
@@ -55,9 +53,7 @@ def get_face_landmarker():
     if _face_landmarker is None:
         _face_landmarker = vision.FaceLandmarker.create_from_options(
             vision.FaceLandmarkerOptions(
-                base_options=python.BaseOptions(
-                    model_asset_path=_landmarker_path
-                ),
+                base_options=python.BaseOptions(model_asset_path=_landmarker_path),
                 num_faces=1,
             )
         )

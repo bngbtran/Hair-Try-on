@@ -6,9 +6,6 @@ from PIL import Image
 from app.services.mediapipe_models import get_face_landmarker
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-
 def _lm_pt(lm, idx: int, W: int, H: int) -> np.ndarray:
     return np.array([lm[idx].x * W, lm[idx].y * H], dtype=np.float64)
 
@@ -144,7 +141,6 @@ def _build_hairline_alpha(
         np.clip(1.0 + dist / float(feather_below), 0.0, 1.0),
     ).astype(np.float32)
 
-    # Tắt fade ở vùng thái dương — tóc bên thái dương không bị cắt
     tx_l = float(geo["temple_left"][0])
     tx_r = float(geo["temple_right"][0])
     fade_w = float(tx_r - tx_l) * 0.12
@@ -277,7 +273,6 @@ def _blend_hairline(
         cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)),
     )
 
-    # Chỉ blend vùng trán giữa hai thái dương — thái dương giữ sắc nét
     tx_l = int(geo["temple_left"][0])
     tx_r = int(geo["temple_right"][0])
     y_start = max(0, int(geo["brow_y"] - geo["face_width"] * 0.25))
@@ -299,19 +294,12 @@ def _blend_hairline(
     return np.dstack([out, np.full((H, W), 255, np.uint8)])
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
-
 def overlay_hair(
     person_pil: Image.Image,
     no_hair_pil: Image.Image,
     hair_mask: np.ndarray,
     hair_pil: Image.Image,
 ) -> Image.Image:
-    """
-    Ghép kiểu tóc lên khuôn mặt đã xoá tóc cũ.
-    Return: ảnh kết quả RGBA.
-    """
     H, W = hair_mask.shape
     img_rgb = np.array(person_pil.convert("RGB"))
 

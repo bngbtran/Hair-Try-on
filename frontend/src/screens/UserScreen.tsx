@@ -26,7 +26,6 @@ const { width: SW } = Dimensions.get("window");
 const MAX_W = Math.min(SW, 520);
 const CARD_W = Math.floor((MAX_W - 56) / 3);
 
-/* Admin vibe */
 const C = {
   bg: "#ffffff",
   white: "#ffffff",
@@ -125,7 +124,6 @@ export default function UserScreen() {
             setResultUri(null);
           }}
         >
-          {/* Preview badge */}
           <Pressable
             style={s.previewBadge}
             onPress={() => setPreviewUri(hairImageUrl(item.image_path))}
@@ -159,7 +157,6 @@ export default function UserScreen() {
   return (
     <View style={s.root}>
       <ScrollView contentContainerStyle={s.scroll}>
-        {/* Upload */}
         <View style={s.block}>
           <Text style={s.label}>Your Photo</Text>
 
@@ -181,7 +178,6 @@ export default function UserScreen() {
           )}
         </View>
 
-        {/* Grid */}
         <View style={s.block}>
           <Text style={s.label}>Choose Hairstyle</Text>
 
@@ -200,7 +196,6 @@ export default function UserScreen() {
         </View>
       </ScrollView>
 
-      {/* Footer */}
       <View style={s.footer}>
         <TouchableOpacity
           disabled={!personUri || !selectedId || busy}
@@ -215,11 +210,9 @@ export default function UserScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* RESULT DIALOG */}
       <Modal visible={resultDialog} transparent animationType="fade">
         <View style={s.modalBg}>
           <View style={s.modalCardCompact}>
-            {/* Header */}
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Result Preview</Text>
               <Pressable onPress={() => setResultDialog(false)}>
@@ -227,7 +220,6 @@ export default function UserScreen() {
               </Pressable>
             </View>
 
-            {/* BEFORE / AFTER */}
             <View style={s.compareRow}>
               <View style={s.compareCol}>
                 <Text style={s.compareLabel}>Before</Text>
@@ -252,7 +244,6 @@ export default function UserScreen() {
               </View>
             </View>
 
-            {/* ACTIONS */}
             <View style={s.modalActionsCompact}>
               <TouchableOpacity style={s.btnPrimary} onPress={downloadResult}>
                 <Text style={s.btnText}>Download</Text>
@@ -269,7 +260,6 @@ export default function UserScreen() {
         </View>
       </Modal>
 
-      {/* HAIR PREVIEW MODAL — rendered last to stack on top of everything */}
       <Modal visible={!!previewUri} transparent animationType="fade">
         <Pressable style={s.modalBg} onPress={() => setPreviewUri(null)}>
           <View style={s.previewBox}>
@@ -291,7 +281,6 @@ export default function UserScreen() {
   );
 }
 
-/* STYLE */
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { paddingBottom: 120, alignItems: "center" },
@@ -421,7 +410,6 @@ const s = StyleSheet.create({
   runBtnOff: { backgroundColor: "#C7C7D1" },
   runTxt: { color: "#fff", fontWeight: "700" },
 
-  /* RESULT MODAL */
   modalBg: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",

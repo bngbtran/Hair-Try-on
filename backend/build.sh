@@ -7,10 +7,8 @@ python --version
 echo "=== Install compiler & GL libs ==="
 apt-get update -y -qq
 
-# Install gcc
 apt-get install -y -qq --no-install-recommends gcc 2>&1 | tail -3
 
-# Try multiple package names for GLES (package name varies by distro/version)
 apt-get install -y -qq --no-install-recommends \
     libgles2 libegl1 libglvnd0 2>/dev/null || \
 apt-get install -y -qq --no-install-recommends \
@@ -20,7 +18,6 @@ apt-get install -y -qq --no-install-recommends \
 
 mkdir -p ./libs
 
-# ── Tìm libGLESv2 thật trên nhiều path ──────────────────────────────────────
 REAL_LIB=$(find /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu \
                /lib /lib/x86_64-linux-gnu /usr/local/lib \
                -name "libGLESv2.so*" 2>/dev/null | head -1)
@@ -57,7 +54,6 @@ STUB
     echo "Stub compiled: $(ls -lh ./libs/libGLESv2.so.2)"
 fi
 
-# ── Tương tự cho libEGL ──────────────────────────────────────────────────────
 REAL_EGL=$(find /usr/lib /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu \
                /lib /lib/x86_64-linux-gnu /usr/local/lib \
                -name "libEGL.so*" 2>/dev/null | head -1)
@@ -71,7 +67,6 @@ else
         -o ./libs/libEGL.so.1 /tmp/egl_stub.c || true
 fi
 
-# ── Đưa vào system library cache để runtime tìm được ────────────────────────
 echo "=== Installing libs to system paths ==="
 cp ./libs/libGLESv2.so.2 /usr/local/lib/libGLESv2.so.2
 [ -f ./libs/libEGL.so.1 ] && cp ./libs/libEGL.so.1 /usr/local/lib/libEGL.so.1 || true

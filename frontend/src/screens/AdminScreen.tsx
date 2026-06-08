@@ -38,7 +38,7 @@ const T = {
 };
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-const SIDEBAR_W = 64; // width của Sidebar trong App.tsx
+const SIDEBAR_W = 64;
 const NUM_COLS = 3;
 const H_PAD = 20;
 const CARD_GAP = 12;
@@ -48,7 +48,6 @@ const IMG_H = CARD_W * 1.05;
 
 type SortField = "id" | "name";
 
-/* ─────────────────────────────── SCREEN ─────────────────────────────── */
 export default function AdminScreen() {
   const [list, setList] = useState<Hairstyle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +138,6 @@ export default function AdminScreen() {
     fetchData();
   }
 
-  /* ── card item ── */
   const renderCard = useCallback(
     ({ item, index }: { item: Hairstyle; index: number }) => {
       const isSelected = selected.includes(item.id);
@@ -153,7 +151,6 @@ export default function AdminScreen() {
             isSelected && s.cardSelected,
           ]}
         >
-          {/* image */}
           <Pressable
             style={s.cardImgWrap}
             onPress={() => setPreviewUri(hairImageUrl(item.image_path))}
@@ -164,10 +161,8 @@ export default function AdminScreen() {
               style={s.cardImg}
               resizeMode="center"
             />
-            {/* dim overlay when selected */}
             {isSelected && <View style={s.selectedDim} />}
 
-            {/* checkbox top-right */}
             <Pressable
               style={s.checkOverlay}
               onPress={() => toggleSelect(item.id)}
@@ -178,7 +173,6 @@ export default function AdminScreen() {
             </Pressable>
           </Pressable>
 
-          {/* name + id */}
           <View style={s.cardBody}>
             <Text style={s.cardName} numberOfLines={1}>
               {item.name}
@@ -186,7 +180,6 @@ export default function AdminScreen() {
             <Text style={s.cardId}>ID: {item.id}</Text>
           </View>
 
-          {/* icon action buttons */}
           <View style={s.cardFooter}>
             <Pressable
               style={({ pressed }) => [
@@ -230,7 +223,6 @@ export default function AdminScreen() {
 
   return (
     <View style={s.container}>
-      {/* ── TOP TOOLBAR ── */}
       <View style={s.toolbar}>
         <View style={s.toolbarGroup}>
           <Pressable
@@ -284,9 +276,7 @@ export default function AdminScreen() {
         </View>
       </View>
 
-      {/* ── CONTENT AREA ── */}
       <View style={s.content}>
-        {/* sub-header */}
         <View style={s.subHeader}>
           <View style={s.subHeaderLeft}>
             <Text style={s.pageTitle}>Manage Hairstyles</Text>
@@ -296,7 +286,6 @@ export default function AdminScreen() {
           </View>
 
           <View style={s.subHeaderRight}>
-            {/* sort picker */}
             <Pressable
               style={s.sortBtn}
               onPress={() => toggleSort(sortField === "name" ? "id" : "name")}
@@ -309,7 +298,6 @@ export default function AdminScreen() {
               </Text>
             </Pressable>
 
-            {/* search */}
             <View style={s.searchBox}>
               <Feather name="search" size={14} color={T.sub} />
               <TextInput
@@ -323,7 +311,6 @@ export default function AdminScreen() {
           </View>
         </View>
 
-        {/* grid */}
         {loading ? (
           <ActivityIndicator
             style={{ marginTop: 60 }}
@@ -348,7 +335,6 @@ export default function AdminScreen() {
         )}
       </View>
 
-      {/* ── IMAGE PREVIEW ── */}
       <Modal visible={!!previewUri} transparent animationType="fade">
         <Pressable style={s.previewOverlay} onPress={() => setPreviewUri(null)}>
           <View style={s.previewCard}>
@@ -367,7 +353,6 @@ export default function AdminScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── ADD / EDIT MODAL ── */}
       <Modal visible={modal} transparent animationType="fade">
         <View style={s.overlay}>
           <View style={s.sheet}>
@@ -412,11 +397,9 @@ export default function AdminScreen() {
   );
 }
 
-/* ─────────────────────────────── STYLES ─────────────────────────────── */
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
 
-  /* ── toolbar ── */
   toolbar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -447,7 +430,6 @@ const s = StyleSheet.create({
   toolBtnPurpleFilled: { backgroundColor: T.purple },
   btnTxt: { fontSize: 13, fontWeight: "600" },
 
-  /* ── content ── */
   content: { flex: 1, paddingHorizontal: H_PAD },
 
   subHeader: {
@@ -488,10 +470,8 @@ const s = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 13, color: T.text, padding: 0 },
 
-  /* ── grid ── */
   grid: { paddingBottom: 24 },
 
-  /* ── card ── */
   card: {
     width: CARD_W,
     backgroundColor: T.card,
@@ -526,7 +506,6 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(28,151,112,0.18)",
   },
 
-  /* overlay elements on image */
   checkOverlay: {
     position: "absolute",
     top: 8,
@@ -564,7 +543,6 @@ const s = StyleSheet.create({
     marginTop: 3,
   },
 
-  /* card footer — icon buttons */
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -587,7 +565,6 @@ const s = StyleSheet.create({
   iconBtnDel: { borderColor: T.orange },
   iconBtnDelFilled: { backgroundColor: T.orange, borderColor: T.orange },
 
-  /* ── empty state ── */
   empty: {
     flex: 1,
     alignItems: "center",
@@ -597,7 +574,6 @@ const s = StyleSheet.create({
   },
   emptyTxt: { fontSize: 14, color: T.sub },
 
-  /* ── image preview ── */
   previewOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -632,7 +608,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* ── add/edit modal ── */
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

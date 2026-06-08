@@ -10,8 +10,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "user",  icon: "scissors" },
-  { key: "admin", icon: "grid"     },
+  { key: "user", icon: "scissors" },
+  { key: "admin", icon: "grid" },
 ];
 
 interface Props {
@@ -20,14 +20,13 @@ interface Props {
 }
 
 const PURPLE = "#1c9770";
-const MUTED  = "#94A3B8";
-const BG     = "#ffffff";
+const MUTED = "#94A3B8";
+const BG = "#ffffff";
 const BORDER = "#F1F5F9";
 
 export default function Sidebar({ active, onChange }: Props) {
   return (
     <View style={s.sidebar}>
-      {/* Logo */}
       <View style={s.logoWrap}>
         <Image
           source={require("../../assets/images/barber.png")}
@@ -38,7 +37,6 @@ export default function Sidebar({ active, onChange }: Props) {
 
       <View style={s.divider} />
 
-      {/* Nav items */}
       <View style={s.navList}>
         {NAV_ITEMS.map((item) => {
           const isActive = active === item.key;
@@ -52,7 +50,6 @@ export default function Sidebar({ active, onChange }: Props) {
               ]}
               onPress={() => onChange(item.key)}
             >
-              {/* Active indicator bar on right edge */}
               {isActive && <View style={s.activeBar} />}
               <Feather
                 name={item.icon}

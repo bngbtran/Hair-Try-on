@@ -19,7 +19,6 @@ def get_segmenter():
 
 
 def _safe_filename(name: str) -> str:
-    # Chuẩn hóa Unicode → bỏ dấu → giữ ASCII (ư→u, ổ→o, ầ→a ...)
     name = unicodedata.normalize("NFKD", name)
     name = name.encode("ascii", "ignore").decode("ascii")
     name = name.strip().lower()
@@ -29,28 +28,17 @@ def _safe_filename(name: str) -> str:
 
 
 def extract_hair(image_bytes: bytes, name: str) -> str:
-    """
-    1. Tách tóc RGBA bằng HairSegmenter
-    2. Nắn thẳng tóc
-    3. Upload PNG lên Supabase Storage (bucket: hairstyles)
-    4. Trả về public URL để lưu vào DB
-    """
     from app.database.db import get_supabase, STORAGE_BUCKET
 
     segmenter = get_segmenter()
-
-    # ── Segment + straighten ──────────────────────────────────────────────────
     rgba_bytes = segmenter.get_hair_rgba(image_bytes)
     hair_pil = Image.open(io.BytesIO(rgba_bytes)).convert("RGBA")
     hair_pil = straighten_hair(hair_pil)
 
-    # ── Serialize to PNG bytes ────────────────────────────────────────────────
     buf = io.BytesIO()
     hair_pil.save(buf, format="PNG")
     png_bytes = buf.getvalue()
 
-    # ── Upload to Supabase Storage ────────────────────────────────────────────
-    # Unique filename: safe_name + short UUID to avoid collisions
     base = _safe_filename(name)
     filename = f"{base}_{uuid.uuid4().hex[:8]}.png"
 
@@ -61,6 +49,5 @@ def extract_hair(image_bytes: bytes, name: str) -> str:
         file_options={"contentType": "image/png", "upsert": "true"},
     )
 
-    # ── Return CDN public URL ─────────────────────────────────────────────────
     public_url: str = supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
     return public_url

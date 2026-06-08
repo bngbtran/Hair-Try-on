@@ -16,15 +16,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      # ── Supabase ──────────────────────────────────────────────────────────
       - key: SUPABASE_URL
-        sync: false          # set manually in Render dashboard
+        sync: false
       - key: SUPABASE_KEY
-        sync: false          # set manually in Render dashboard (service_role key)
-      # ── MediaPipe models cache (persistent disk) ──────────────────────────
+        sync: false
       - key: MODELS_DIR
         value: /data/models
-      # ── OpenCV / MediaPipe runtime flags ──────────────────────────────────
       - key: MEDIAPIPE_DISABLE_GPU
         value: "1"
       - key: LIBGL_ALWAYS_SOFTWARE
