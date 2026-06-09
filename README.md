@@ -407,10 +407,12 @@ services:
 
 **Biến môi trường cần thiết trên Render:**
 
+> Lưu ý: phiên bản backend hiện tại sử dụng Supabase để lưu metadata kiểu tóc và ảnh, nên bạn cần thêm `SUPABASE_URL` và `SUPABASE_KEY`.
+
 | Biến | Giá trị | Mô tả |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:////data/hairstyle.db` | Database trên persistent disk |
-| `ASSETS_DIR` | `/data/assets` | Thư mục lưu ảnh tóc |
+| `SUPABASE_URL` | `https://...` | URL Supabase project |
+| `SUPABASE_KEY` | `...` | Service role key hoặc anon key |
 | `MODELS_DIR` | `/data/models` | Thư mục lưu model AI |
 | `MEDIAPIPE_DISABLE_GPU` | `1` | Dùng CPU (Render không có GPU) |
 | `LIBGL_ALWAYS_SOFTWARE` | `1` | Software OpenGL cho OpenCV |

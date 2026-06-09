@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin import router as admin_router
 from app.api.tryon import router as tryon_router
+from app.database.db import SUPABASE_KEY, SUPABASE_URL
 
 app = FastAPI(title="Hair Try-On API")
 
@@ -37,6 +38,15 @@ app.add_middleware(
 
 app.include_router(admin_router)
 app.include_router(tryon_router)
+
+
+@app.on_event("startup")
+def validate_env():
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise RuntimeError(
+            "Missing SUPABASE_URL / SUPABASE_KEY. "
+            "Set them in Render environment variables or backend/.env for local development."
+        )
 
 
 @app.get("/")

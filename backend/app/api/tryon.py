@@ -1,4 +1,5 @@
 import io
+import logging
 import urllib.request
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -9,6 +10,7 @@ from app.database.db import get_supabase
 from app.services.hair_remover import remove_old_hair
 from app.services.hair_overlay import overlay_hair
 
+logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/tryon", tags=["Try-On"])
 
 TABLE = "hairstyles"
@@ -33,16 +35,23 @@ async def tryon(
 
     public_url: str = result.data["image_path"]
 
+    if not public_url or not public_url.startswith("http"):
+        raise HTTPException(status_code=502, detail="Invalid hairstyle image URL")
+
     try:
         with urllib.request.urlopen(public_url, timeout=10) as resp:
             hair_bytes = resp.read()
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Cannot fetch hair image: {exc}")
 
-    hair_pil = Image.open(io.BytesIO(hair_bytes)).convert("RGBA")
+    try:
+        hair_pil = Image.open(io.BytesIO(hair_bytes)).convert("RGBA")
+        person_bytes = await person_image.read()
+        person_pil = Image.open(io.BytesIO(person_bytes)).convert("RGBA")
+    except Exception as exc:
+        logger.exception("Invalid image upload or hairstyle image")
+        raise HTTPException(status_code=422, detail=f"Invalid image format: {exc}")
 
-    person_bytes = await person_image.read()
-    person_pil = Image.open(io.BytesIO(person_bytes)).convert("RGBA")
     if max(person_pil.size) > _MAX_DIM:
         person_pil.thumbnail((_MAX_DIM, _MAX_DIM), Image.LANCZOS)
 
@@ -51,6 +60,9 @@ async def tryon(
         result_pil = overlay_hair(person_pil, no_hair_pil, hair_mask, hair_pil)
     except RuntimeError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    except Exception as exc:
+        logger.exception("Try-on pipeline failed")
+        raise HTTPException(status_code=500, detail=f"Try-on pipeline error: {exc}")
 
     buf = io.BytesIO()
     result_pil.convert("RGB").save(buf, format="PNG")
