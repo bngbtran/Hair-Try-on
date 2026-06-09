@@ -80,4 +80,6 @@ ls -lh ./libs/
 echo "=== Install Python packages ==="
 pip install -r requirements.txt
 
+chmod +x ./start.sh
+
 echo "=== Build done ==="

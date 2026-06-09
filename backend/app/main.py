@@ -1,7 +1,10 @@
 import os
+import pathlib
 
+backend_root = pathlib.Path(__file__).resolve().parents[1]
+libs_dir = backend_root / "libs"
 os.environ["LD_LIBRARY_PATH"] = (
-    "/opt/render/project/src/backend/libs:/usr/local/lib:"
+    f"{libs_dir}:/usr/local/lib:"
     + os.environ.get("LD_LIBRARY_PATH", "")
 )
 
