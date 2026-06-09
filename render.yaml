@@ -6,7 +6,7 @@ services:
     region: singapore
     rootDir: backend
     buildCommand: bash build.sh
-    startCommand: LD_LIBRARY_PATH=/opt/render/project/src/backend/libs:/usr/local/lib:$LD_LIBRARY_PATH uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash start.sh
 
     disk:
       name: hair-tryon-data

@@ -1,5 +1,10 @@
 import os
 
+os.environ["LD_LIBRARY_PATH"] = (
+    "/opt/render/project/src/backend/libs:/usr/local/lib:"
+    + os.environ.get("LD_LIBRARY_PATH", "")
+)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
