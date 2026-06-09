@@ -1,3 +1,4 @@
+import ctypes
 import os
 import pathlib
 
@@ -7,6 +8,13 @@ os.environ["LD_LIBRARY_PATH"] = (
     f"{libs_dir}:/usr/local/lib:"
     + os.environ.get("LD_LIBRARY_PATH", "")
 )
+for libname in ("libGLESv2.so.2", "libEGL.so.1"):
+    libpath = libs_dir / libname
+    if libpath.exists():
+        try:
+            ctypes.CDLL(str(libpath))
+        except OSError:
+            pass
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
